@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import { Leaf, Award, Shield, Package, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Layout from "@/components/layout/Layout";
+import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = {
@@ -13,7 +14,7 @@ const fadeUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const },
+    transition: { delay: i * 0.12, duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
   }),
 };
 
@@ -25,10 +26,41 @@ const benefits = [
 ];
 
 const segments = [
-  { title: "DrumRoast Signature", desc: "Premium cashew flavours crafted for the discerning palate — salted, masala, peri peri, tandoori, and more.", color: "bg-primary/10 text-primary" },
-  { title: "DrumRoast Daily", desc: "Everyday snack options — makhanas, trail mixes, and healthy bites for every mood.", color: "bg-secondary/20 text-secondary-foreground" },
-  { title: "DrumRoast Café", desc: "An experiential concept blending specialty beverages with dry fruit desserts and smoothie bowls.", color: "bg-accent/20 text-accent-foreground" },
+  { title: "DrumRoast Signature", desc: "Premium cashew flavours crafted for the discerning palate — salted, masala, peri peri, tandoori, and more.", emoji: "🏆" },
+  { title: "DrumRoast Daily", desc: "Everyday snack options — makhanas, trail mixes, and healthy bites for every mood.", emoji: "🌿" },
+  { title: "DrumRoast Café", desc: "An experiential concept blending specialty beverages with dry fruit desserts and smoothie bowls.", emoji: "☕" },
 ];
+
+const stats = [
+  { value: 12, suffix: "+", label: "Flavours" },
+  { value: 1000, suffix: "+", label: "Happy Customers" },
+  { value: 100, suffix: "%", label: "Natural" },
+];
+
+function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    let start = 0;
+    const duration = 1500;
+    const step = Math.max(1, Math.floor(value / (duration / 16)));
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [isInView, value]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
 
 type FeaturedProduct = { id: string; name: string; slug: string; price: number; category: string; emoji: string | null };
 
@@ -48,24 +80,73 @@ const Index = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-muted">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/10" />
-        <div className="container relative py-20 md:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/15 via-muted to-accent/10">
+        {/* Floating cashew decorations */}
+        {["🥜", "🌰", "🥜", "🌰", "🥜"].map((e, i) => (
+          <motion.span
+            key={i}
+            className="pointer-events-none absolute text-3xl opacity-20 md:text-5xl"
+            style={{ left: `${10 + i * 20}%`, top: `${20 + (i % 3) * 25}%` }}
+            animate={{ y: [0, -15, 0], rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {e}
+          </motion.span>
+        ))}
+        <div className="container relative py-24 md:py-36">
           <motion.div initial="hidden" animate="visible" className="mx-auto max-w-3xl text-center">
             <motion.p custom={0} variants={fadeUp} className="mb-3 font-heading text-sm font-semibold uppercase tracking-widest text-primary">
               Premium Cashews & Healthy Snacks
             </motion.p>
             <motion.h1 custom={1} variants={fadeUp} className="mb-6 font-heading text-4xl font-extrabold leading-tight md:text-6xl">
-              Traditionally Crafted <span className="text-primary">Taste</span>
+              Traditionally Crafted{" "}
+              <span className="relative inline-block text-primary">
+                Taste
+                <motion.span
+                  className="absolute -bottom-1 left-0 h-1 rounded-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 0.8, duration: 0.6 }}
+                />
+              </span>
             </motion.h1>
             <motion.p custom={2} variants={fadeUp} className="mb-8 text-lg text-muted-foreground md:text-xl">
               Experience authentic drum-roasted cashew flavours inspired by Indian food heritage and refined for modern lifestyles.
             </motion.p>
             <motion.div custom={3} variants={fadeUp} className="flex flex-wrap justify-center gap-4">
-              <Link to="/shop"><Button size="lg" className="rounded-full px-8 font-semibold">Shop Now <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
-              <Link to="/shop"><Button size="lg" variant="outline" className="rounded-full px-8 font-semibold">Explore Collections</Button></Link>
+              <Link to="/shop">
+                <Button size="lg" className="rounded-full px-8 font-semibold shadow-lg shadow-primary/25 transition-shadow hover:shadow-xl hover:shadow-primary/30">
+                  Shop Now <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/about">
+                <Button size="lg" variant="outline" className="rounded-full px-8 font-semibold backdrop-blur">
+                  Our Story
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="border-b bg-card">
+        <div className="container grid grid-cols-3 divide-x">
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="py-8 text-center"
+            >
+              <p className="font-heading text-3xl font-extrabold text-primary md:text-4xl">
+                <AnimatedCounter value={s.value} suffix={s.suffix} />
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
@@ -84,9 +165,15 @@ const Index = () => {
           <div className="grid gap-6 md:grid-cols-3">
             {segments.map((seg, i) => (
               <motion.div key={seg.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15, duration: 0.5 }}>
-                <Card className="h-full border-none shadow-md transition-shadow hover:shadow-lg">
+                <Card className="group h-full border-none shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                   <CardContent className="p-8">
-                    <span className={`mb-4 inline-block rounded-full px-4 py-1 text-xs font-semibold ${seg.color}`}>Collection</span>
+                    <motion.span
+                      className="mb-4 inline-block text-4xl"
+                      whileHover={{ rotate: [0, -10, 10, 0], scale: 1.2 }}
+                      transition={{ duration: 0.4 }}
+                    >
+                      {seg.emoji}
+                    </motion.span>
                     <h3 className="mb-3 font-heading text-xl font-bold">{seg.title}</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">{seg.desc}</p>
                   </CardContent>
@@ -102,10 +189,13 @@ const Index = () => {
         <h2 className="mb-12 text-center font-heading text-3xl font-bold md:text-4xl">Why Choose DrumRoast</h2>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {benefits.map((b, i) => (
-            <motion.div key={b.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.4 }} className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <motion.div key={b.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.4 }} className="group text-center">
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/20"
+              >
                 <b.icon className="h-7 w-7 text-primary" />
-              </div>
+              </motion.div>
               <h3 className="mb-2 font-heading text-base font-bold">{b.title}</h3>
               <p className="text-sm text-muted-foreground">{b.desc}</p>
             </motion.div>
@@ -122,21 +212,16 @@ const Index = () => {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((p, i) => (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4 }}>
-                <Link to={`/product/${p.slug}`}>
-                  <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
-                    <div className="flex h-40 items-center justify-center bg-gradient-to-br from-muted to-background text-6xl">{p.emoji || "🥜"}</div>
-                    <CardContent className="p-5">
-                      <span className="text-xs font-medium text-primary">{p.category}</span>
-                      <h3 className="mt-1 font-heading text-base font-bold">{p.name}</h3>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-lg font-bold text-primary">₹{p.price}</span>
-                        <Button size="sm" variant="outline" className="rounded-full text-xs">View Details</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                name={p.name}
+                slug={p.slug}
+                price={p.price}
+                category={p.category}
+                emoji={p.emoji}
+                index={i}
+              />
             ))}
           </div>
           <div className="mt-8 text-center md:hidden">
@@ -152,7 +237,7 @@ const Index = () => {
           <p className="mb-6 text-muted-foreground">Get notified about new launches, seasonal collections, and exclusive offers.</p>
           <div className="flex gap-2">
             <Input type="email" placeholder="Enter your email" className="rounded-full" />
-            <Button className="rounded-full px-6">Subscribe</Button>
+            <Button className="rounded-full px-6 shadow-md shadow-primary/20">Subscribe</Button>
           </div>
         </motion.div>
       </section>
