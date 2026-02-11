@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/layout/Layout";
-import { Link } from "react-router-dom";
+import ProductCard from "@/components/ProductCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 
 type Product = {
@@ -33,15 +33,18 @@ const Shop = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       const [{ data: prods }, { data: offs }] = await Promise.all([
         supabase.from("products").select("id,name,slug,price,original_price,category,emoji,is_active").eq("is_active", true),
         supabase.from("offers").select("id,discount_percentage,product_id,is_active").eq("is_active", true),
       ]);
       if (prods) setProducts(prods as Product[]);
       if (offs) setOffers(offs as Offer[]);
+      setLoading(false);
     };
     load();
   }, []);
@@ -61,11 +64,17 @@ const Shop = () => {
 
   return (
     <Layout>
-      <section className="bg-muted py-12 md:py-16">
-        <div className="container">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-muted to-accent/5 py-12 md:py-16">
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: "radial-gradient(circle at 20% 50%, hsl(var(--primary)) 1px, transparent 1px), radial-gradient(circle at 80% 20%, hsl(var(--primary)) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+        }} />
+        <div className="container relative">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl text-center">
-            <h1 className="mb-4 font-heading text-4xl font-extrabold md:text-5xl">Shop</h1>
-            <p className="text-muted-foreground">Explore our signature cashew flavours, healthy snacks, and gift collections.</p>
+            <h1 className="mb-4 font-heading text-4xl font-extrabold md:text-5xl">
+              Our <span className="text-primary">Collection</span>
+            </h1>
+            <p className="text-muted-foreground">Premium cashew flavours, healthy snacks, and curated gift collections — all drum-roasted to perfection.</p>
           </motion.div>
         </div>
       </section>
@@ -74,15 +83,18 @@ const Shop = () => {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => (
-              <Button
-                key={cat}
-                variant={activeCategory === cat ? "default" : "outline"}
-                size="sm"
-                className="rounded-full"
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat === "All" ? "All Products" : `DrumRoast ${cat}`}
-              </Button>
+              <motion.div key={cat} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant={activeCategory === cat ? "default" : "outline"}
+                  size="sm"
+                  className={`rounded-full transition-all duration-300 ${
+                    activeCategory === cat ? "shadow-md" : ""
+                  }`}
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  {cat === "All" ? "All Products" : `DrumRoast ${cat}`}
+                </Button>
+              </motion.div>
             ))}
           </div>
           <div className="relative max-w-xs">
@@ -91,42 +103,47 @@ const Shop = () => {
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p, i) => {
-            const discount = getDiscount(p.id);
-            return (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03, duration: 0.3 }}>
-                <Link to={`/product/${p.slug}`}>
-                  <Card className="h-full overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                    <div className="relative flex h-36 items-center justify-center bg-gradient-to-br from-muted to-background text-5xl">
-                      {p.emoji || "🥜"}
-                      {discount && (
-                        <span className="absolute right-2 top-2 rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">
-                          -{discount}%
-                        </span>
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <span className="text-xs font-medium text-primary">{p.category}</span>
-                      <h3 className="mt-1 font-heading text-sm font-bold">{p.name}</h3>
-                      <div className="mt-2 flex items-center gap-2">
-                        <p className="text-lg font-bold text-primary">₹{p.price}</p>
-                        {p.original_price && (
-                          <p className="text-sm text-muted-foreground line-through">₹{p.original_price}</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="py-20 text-center text-muted-foreground">
-            No products found. Try a different search or category.
+        {loading ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-44 w-full rounded-2xl" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtered.map((p, i) => (
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                name={p.name}
+                slug={p.slug}
+                price={p.price}
+                originalPrice={p.original_price}
+                category={p.category}
+                emoji={p.emoji}
+                discount={getDiscount(p.id)}
+                index={i}
+              />
+            ))}
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-20 text-center"
+          >
+            <div className="mx-auto mb-4 text-6xl">🔍</div>
+            <p className="text-lg font-medium text-muted-foreground">
+              No products found. Try a different search or category.
+            </p>
+          </motion.div>
         )}
       </section>
     </Layout>

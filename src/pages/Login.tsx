@@ -50,12 +50,19 @@ const Login = () => {
     <Layout>
       <div className="container flex min-h-[60vh] items-center justify-center py-16">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm space-y-6"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-sm space-y-6 rounded-2xl bg-card p-8 shadow-xl"
         >
           <div className="text-center">
-            <img src={logo} alt="DrumRoast" className="mx-auto mb-4 h-16 w-auto rounded-lg" />
+            <motion.img
+              src={logo}
+              alt="DrumRoast"
+              className="mx-auto mb-4 h-16 w-auto rounded-xl"
+              whileHover={{ rotate: [0, -5, 5, 0] }}
+              transition={{ duration: 0.4 }}
+            />
             <h1 className="font-heading text-2xl font-bold">
               {isSignUp ? "Create Account" : "Welcome Back"}
             </h1>
@@ -66,22 +73,24 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
-              <div>
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} transition={{ duration: 0.3 }}>
                 <label className="mb-1.5 block text-sm font-medium">Full Name</label>
-                <Input required placeholder="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              </div>
+                <Input required placeholder="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="rounded-xl" />
+              </motion.div>
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium">Email</label>
-              <Input required type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input required type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-xl" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium">Password</label>
-              <Input required type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input required type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-xl" />
             </div>
-            <Button type="submit" className="w-full rounded-full" disabled={loading}>
-              {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
-            </Button>
+            <motion.div whileTap={{ scale: 0.97 }}>
+              <Button type="submit" className="w-full rounded-full shadow-md shadow-primary/20" disabled={loading}>
+                {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
+              </Button>
+            </motion.div>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">

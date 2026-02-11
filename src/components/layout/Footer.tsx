@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Mail, Instagram, Facebook, Twitter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,8 @@ const Footer = () => {
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <img src={logo} alt="DrumRoast" className="h-10 w-auto rounded-md" />
+            <div className="flex items-center gap-2.5">
+              <img src={logo} alt="DrumRoast" className="h-10 w-auto rounded-lg" />
               <span className="font-heading text-xl font-bold">DrumRoast</span>
             </div>
             <p className="text-sm leading-relaxed opacity-80">
@@ -24,32 +25,47 @@ const Footer = () => {
           <div className="space-y-3">
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider">Quick Links</h4>
             <nav className="flex flex-col gap-2 text-sm opacity-80">
-              <Link to="/about" className="hover:opacity-100 transition-opacity">About Us</Link>
-              <Link to="/shop" className="hover:opacity-100 transition-opacity">Shop</Link>
-              <Link to="/corporate" className="hover:opacity-100 transition-opacity">Corporate Orders</Link>
-              <Link to="/cafe" className="hover:opacity-100 transition-opacity">Café Experience</Link>
-              <Link to="/contact" className="hover:opacity-100 transition-opacity">Contact</Link>
+              {[
+                { to: "/about", label: "About Us" },
+                { to: "/shop", label: "Shop" },
+                { to: "/corporate", label: "Corporate Orders" },
+                { to: "/cafe", label: "Café Experience" },
+                { to: "/contact", label: "Contact" },
+              ].map((link) => (
+                <Link key={link.to} to={link.to} className="transition-opacity hover:opacity-100">
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
 
           <div className="space-y-3">
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider">Get in Touch</h4>
             <div className="space-y-2 text-sm opacity-80">
-              <a href="mailto:officialdrumroast@gmail.com" className="flex items-center gap-2 hover:opacity-100 transition-opacity">
+              <a href="mailto:officialdrumroast@gmail.com" className="flex items-center gap-2 transition-opacity hover:opacity-100">
                 <Mail className="h-4 w-4" />
                 officialdrumroast@gmail.com
               </a>
             </div>
             <div className="flex gap-3 pt-2">
-              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a href="#" aria-label="Facebook" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a href="#" aria-label="Twitter" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
-                <Twitter className="h-4 w-4" />
-              </a>
+              {[
+                { icon: Instagram, href: INSTAGRAM_URL, label: "Instagram" },
+                { icon: Facebook, href: "#", label: "Facebook" },
+                { icon: Twitter, href: "#", label: "Twitter" },
+              ].map((s) => (
+                <motion.a
+                  key={s.label}
+                  href={s.href}
+                  target={s.href !== "#" ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="rounded-full bg-primary-foreground/10 p-2.5 transition-colors hover:bg-primary/80 hover:text-primary-foreground"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <s.icon className="h-4 w-4" />
+                </motion.a>
+              ))}
             </div>
           </div>
 
@@ -62,7 +78,7 @@ const Footer = () => {
                 placeholder="Your email"
                 className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/50"
               />
-              <Button variant="secondary" size="sm">Join</Button>
+              <Button variant="secondary" size="sm" className="rounded-full">Join</Button>
             </div>
           </div>
         </div>
