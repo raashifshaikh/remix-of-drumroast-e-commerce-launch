@@ -1,88 +1,76 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ShoppingCart, Leaf, Package, Thermometer, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
+import { supabase } from "@/integrations/supabase/client";
 
-// Hardcoded products for Phase 1 — will be replaced with Supabase data
-const productData: Record<string, {
-  name: string; price: number; category: string; emoji: string;
-  desc: string; ingredients: string; nutrition: string; storage: string; packaging: string;
-  related: { id: string; name: string; price: number; emoji: string }[];
-}> = {
-  "1": {
-    name: "Drum Roasted Cashews", price: 499, category: "Signature", emoji: "🥜",
-    desc: "Premium W320 grade cashews, slowly drum-roasted to golden perfection using traditional techniques. Light salt finish brings out the natural sweetness and buttery crunch.",
-    ingredients: "Cashew nuts (W320), rock salt, cold-pressed groundnut oil",
-    nutrition: "Per 30g serving: Calories 170, Protein 5g, Fat 13g, Carbs 9g, Fibre 1g",
-    storage: "Store in a cool, dry place. Best consumed within 6 months of packaging.",
-    packaging: "Food-grade zip-lock pouch, nitrogen-flushed for freshness. Available in 100g, 250g, 500g.",
-    related: [
-      { id: "10", name: "Honey Roasted Cashews", price: 549, emoji: "🍯" },
-      { id: "2", name: "Premium Almonds", price: 549, emoji: "🌰" },
-      { id: "5", name: "Classic Trail Mix", price: 399, emoji: "🥣" },
-    ],
-  },
-  "2": {
-    name: "Premium Almonds", price: 549, category: "Signature", emoji: "🌰",
-    desc: "Handpicked California almonds, lightly roasted to retain maximum nutrition. Crunchy, wholesome, and perfect for everyday snacking.",
-    ingredients: "Almonds (California Nonpareil), rock salt",
-    nutrition: "Per 30g serving: Calories 165, Protein 6g, Fat 14g, Carbs 6g, Fibre 3g",
-    storage: "Store in a cool, dry place away from direct sunlight.",
-    packaging: "Resealable food-grade pouch. Available in 100g, 250g, 500g.",
-    related: [
-      { id: "1", name: "Drum Roasted Cashews", price: 499, emoji: "🥜" },
-      { id: "9", name: "Chocolate Almonds", price: 599, emoji: "🍫" },
-      { id: "3", name: "Iranian Pistachios", price: 799, emoji: "🟢" },
-    ],
-  },
-};
-
-// Fallback for products without detailed data
-const fallback = {
-  desc: "Premium quality product from DrumRoast — crafted with care and authentic ingredients.",
-  ingredients: "Natural premium ingredients, rock salt",
-  nutrition: "Rich in protein, healthy fats, and essential minerals",
-  storage: "Store in a cool, dry place. Consume within 6 months.",
-  packaging: "Food-grade resealable pouch, nitrogen-flushed.",
-  related: [] as { id: string; name: string; price: number; emoji: string }[],
-};
-
-const allProducts: Record<string, { name: string; price: number; category: string; emoji: string }> = {
-  "1": { name: "Drum Roasted Cashews", price: 499, category: "Signature", emoji: "🥜" },
-  "2": { name: "Premium Almonds", price: 549, category: "Signature", emoji: "🌰" },
-  "3": { name: "Iranian Pistachios", price: 799, category: "Signature", emoji: "🟢" },
-  "4": { name: "Chocolate Coated Cashews", price: 599, category: "Signature", emoji: "🍫" },
-  "5": { name: "Classic Trail Mix", price: 399, category: "Signature", emoji: "🥣" },
-  "6": { name: "Energy Trail Mix", price: 449, category: "Signature", emoji: "⚡" },
-  "7": { name: "Superfood Blend", price: 649, category: "Signature", emoji: "🌿" },
-  "8": { name: "Protein Power Bar", price: 149, category: "Signature", emoji: "💪" },
-  "9": { name: "Chocolate Almonds", price: 599, category: "Signature", emoji: "🍫" },
-  "10": { name: "Honey Roasted Cashews", price: 549, category: "Signature", emoji: "🍯" },
-  "11": { name: "Salted Peanuts", price: 99, category: "Daily", emoji: "🥜" },
-  "12": { name: "Masala Peanuts", price: 119, category: "Daily", emoji: "🌶️" },
-  "13": { name: "Classic Chips", price: 79, category: "Daily", emoji: "🍟" },
-  "14": { name: "Cream & Onion Makhana", price: 199, category: "Daily", emoji: "🍿" },
-  "15": { name: "Peri Peri Makhana", price: 199, category: "Daily", emoji: "🔥" },
-  "16": { name: "Cheese Puffs", price: 89, category: "Daily", emoji: "🧀" },
-  "17": { name: "Classic Namkeen Mix", price: 129, category: "Daily", emoji: "🥨" },
-  "18": { name: "Tangy Tomato Chips", price: 79, category: "Daily", emoji: "🍅" },
-  "19": { name: "Festive Delight Box", price: 1299, category: "Gift", emoji: "🎁" },
-  "20": { name: "Premium Nut Collection", price: 1599, category: "Gift", emoji: "✨" },
-  "21": { name: "Corporate Gift Pack", price: 999, category: "Gift", emoji: "🏢" },
-  "22": { name: "Royal Assortment Box", price: 1999, category: "Gift", emoji: "👑" },
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  category: string;
+  subcategory: string | null;
+  emoji: string | null;
+  ingredients: string | null;
+  nutrition: string | null;
+  storage_instructions: string | null;
+  packaging: string | null;
 };
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const base = id ? allProducts[id] : null;
-  const detail = id ? productData[id] : null;
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      // Try slug first, then UUID
+      let query = supabase.from("products").select("*").eq("is_active", true);
+      const isUUID = id && /^[0-9a-f-]{36}$/.test(id);
+      if (isUUID) {
+        query = query.eq("id", id);
+      } else {
+        query = query.eq("slug", id);
+      }
+      const { data } = await query.single();
+      if (data) {
+        setProduct(data as Product);
+        // Load related from same category
+        const { data: rel } = await supabase
+          .from("products")
+          .select("id,name,slug,price,emoji,category,description,original_price,subcategory,ingredients,nutrition,storage_instructions,packaging")
+          .eq("category", (data as Product).category)
+          .neq("id", (data as Product).id)
+          .eq("is_active", true)
+          .limit(3);
+        if (rel) setRelated(rel as Product[]);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [id]);
 
-  if (!base) {
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container flex min-h-[50vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!product) {
     return (
       <Layout>
         <div className="container py-20 text-center">
@@ -93,8 +81,6 @@ const ProductDetail = () => {
     );
   }
 
-  const product = { ...base, ...(detail || fallback) };
-
   const handleAddToCart = () => {
     toast({ title: "Added to cart!", description: `${product.name} has been added to your cart.` });
   };
@@ -102,9 +88,9 @@ const ProductDetail = () => {
   const details = [
     { icon: Leaf, label: "Ingredients", value: product.ingredients },
     { icon: Info, label: "Nutrition", value: product.nutrition },
-    { icon: Thermometer, label: "Storage", value: product.storage },
+    { icon: Thermometer, label: "Storage", value: product.storage_instructions },
     { icon: Package, label: "Packaging", value: product.packaging },
-  ];
+  ].filter((d) => d.value);
 
   return (
     <Layout>
@@ -114,31 +100,26 @@ const ProductDetail = () => {
         </Link>
 
         <div className="grid gap-10 md:grid-cols-2">
-          {/* Image */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center justify-center rounded-2xl bg-gradient-to-br from-muted to-background p-12 text-9xl"
-          >
-            {product.emoji}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+            className="flex items-center justify-center rounded-2xl bg-gradient-to-br from-muted to-background p-12 text-9xl">
+            {product.emoji || "🥜"}
           </motion.div>
 
-          {/* Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
             <div>
               <span className="text-sm font-medium text-primary">{product.category}</span>
               <h1 className="mt-1 font-heading text-3xl font-extrabold md:text-4xl">{product.name}</h1>
             </div>
-            <p className="text-2xl font-bold text-primary">₹{product.price}</p>
-            <p className="leading-relaxed text-muted-foreground">{product.desc}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-2xl font-bold text-primary">₹{product.price}</p>
+              {product.original_price && (
+                <p className="text-lg text-muted-foreground line-through">₹{product.original_price}</p>
+              )}
+            </div>
+            <p className="leading-relaxed text-muted-foreground">{product.description}</p>
 
             <Button size="lg" className="w-full rounded-full md:w-auto" onClick={handleAddToCart}>
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
+              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
             </Button>
 
             <div className="space-y-4 pt-4">
@@ -157,16 +138,15 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
-        {/* Related */}
-        {product.related.length > 0 && (
+        {related.length > 0 && (
           <section className="mt-16">
             <h2 className="mb-6 font-heading text-2xl font-bold">You Might Also Like</h2>
             <div className="grid gap-5 sm:grid-cols-3">
-              {product.related.map((r) => (
-                <Link key={r.id} to={`/product/${r.id}`}>
+              {related.map((r) => (
+                <Link key={r.id} to={`/product/${r.slug}`}>
                   <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
                     <div className="flex h-32 items-center justify-center bg-gradient-to-br from-muted to-background text-5xl">
-                      {r.emoji}
+                      {r.emoji || "🥜"}
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-heading text-sm font-bold">{r.name}</h3>

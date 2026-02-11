@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
 
+const INSTAGRAM_URL = "https://www.instagram.com/officialdrumroast?igsh=MXVyODhybWNkYm95bQ==";
+
 const Contact = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -25,31 +27,17 @@ const Contact = () => {
     <Layout>
       <section className="bg-muted py-16 md:py-24">
         <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto max-w-3xl text-center"
-          >
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mx-auto max-w-3xl text-center">
             <p className="mb-3 font-heading text-sm font-semibold uppercase tracking-widest text-primary">Contact</p>
             <h1 className="mb-6 font-heading text-4xl font-extrabold md:text-5xl">Get in Touch</h1>
-            <p className="text-lg text-muted-foreground">
-              Have a question, feedback, or just want to say hello? We'd love to hear from you.
-            </p>
+            <p className="text-lg text-muted-foreground">Have a question, feedback, or just want to say hello? We'd love to hear from you.</p>
           </motion.div>
         </div>
       </section>
 
       <section className="container py-16 md:py-24">
         <div className="mx-auto grid max-w-4xl gap-12 md:grid-cols-2">
-          {/* Form */}
-          <motion.form
-            onSubmit={handleSubmit}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-5"
-          >
+          <motion.form onSubmit={handleSubmit} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="space-y-5">
             <div>
               <label className="mb-1.5 block text-sm font-medium">Name</label>
               <Input required placeholder="Your name" />
@@ -68,27 +56,17 @@ const Contact = () => {
             </Button>
           </motion.form>
 
-          {/* Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-8"
-          >
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="space-y-8">
             <div>
               <h3 className="mb-3 font-heading text-lg font-bold">Email Us</h3>
-              <a
-                href="mailto:officialdrumroast@gmail.com"
-                className="flex items-center gap-2 text-primary hover:underline"
-              >
-                <Mail className="h-5 w-5" />
-                officialdrumroast@gmail.com
+              <a href="mailto:officialdrumroast@gmail.com" className="flex items-center gap-2 text-primary hover:underline">
+                <Mail className="h-5 w-5" /> officialdrumroast@gmail.com
               </a>
             </div>
             <div>
               <h3 className="mb-3 font-heading text-lg font-bold">Follow Us</h3>
               <div className="flex gap-3">
-                <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
+                <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
                   <Instagram className="h-5 w-5" />
                 </a>
                 <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
