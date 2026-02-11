@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,57 +6,58 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/layout/Layout";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 type Product = {
   id: string;
   name: string;
+  slug: string;
   price: number;
+  original_price: number | null;
   category: string;
-  subcategory: string;
-  emoji: string;
+  emoji: string | null;
+  is_active: boolean | null;
 };
 
-const allProducts: Product[] = [
-  // Signature
-  { id: "1", name: "Drum Roasted Cashews", price: 499, category: "Signature", subcategory: "Cashews", emoji: "🥜" },
-  { id: "2", name: "Premium Almonds", price: 549, category: "Signature", subcategory: "Almonds", emoji: "🌰" },
-  { id: "3", name: "Iranian Pistachios", price: 799, category: "Signature", subcategory: "Pistachios", emoji: "🟢" },
-  { id: "4", name: "Chocolate Coated Cashews", price: 599, category: "Signature", subcategory: "Chocolate Nuts", emoji: "🍫" },
-  { id: "5", name: "Classic Trail Mix", price: 399, category: "Signature", subcategory: "Trail Mix", emoji: "🥣" },
-  { id: "6", name: "Energy Trail Mix", price: 449, category: "Signature", subcategory: "Trail Mix", emoji: "⚡" },
-  { id: "7", name: "Superfood Blend", price: 649, category: "Signature", subcategory: "Superfoods", emoji: "🌿" },
-  { id: "8", name: "Protein Power Bar", price: 149, category: "Signature", subcategory: "Protein Bars", emoji: "💪" },
-  { id: "9", name: "Chocolate Almonds", price: 599, category: "Signature", subcategory: "Chocolate Nuts", emoji: "🍫" },
-  { id: "10", name: "Honey Roasted Cashews", price: 549, category: "Signature", subcategory: "Cashews", emoji: "🍯" },
-  // Daily
-  { id: "11", name: "Salted Peanuts", price: 99, category: "Daily", subcategory: "Peanuts", emoji: "🥜" },
-  { id: "12", name: "Masala Peanuts", price: 119, category: "Daily", subcategory: "Masala Snacks", emoji: "🌶️" },
-  { id: "13", name: "Classic Chips", price: 79, category: "Daily", subcategory: "Chips", emoji: "🍟" },
-  { id: "14", name: "Cream & Onion Makhana", price: 199, category: "Daily", subcategory: "Makhana", emoji: "🍿" },
-  { id: "15", name: "Peri Peri Makhana", price: 199, category: "Daily", subcategory: "Makhana", emoji: "🔥" },
-  { id: "16", name: "Cheese Puffs", price: 89, category: "Daily", subcategory: "Puff Snacks", emoji: "🧀" },
-  { id: "17", name: "Classic Namkeen Mix", price: 129, category: "Daily", subcategory: "Namkeen", emoji: "🥨" },
-  { id: "18", name: "Tangy Tomato Chips", price: 79, category: "Daily", subcategory: "Chips", emoji: "🍅" },
-  // Gift Collections
-  { id: "19", name: "Festive Delight Box", price: 1299, category: "Gift", subcategory: "Festive", emoji: "🎁" },
-  { id: "20", name: "Premium Nut Collection", price: 1599, category: "Gift", subcategory: "Festive", emoji: "✨" },
-  { id: "21", name: "Corporate Gift Pack", price: 999, category: "Gift", subcategory: "Corporate", emoji: "🏢" },
-  { id: "22", name: "Royal Assortment Box", price: 1999, category: "Gift", subcategory: "Festive", emoji: "👑" },
-];
+type Offer = {
+  id: string;
+  discount_percentage: number;
+  product_id: string | null;
+  is_active: boolean | null;
+};
 
 const categories = ["All", "Signature", "Daily", "Gift"];
 
 const Shop = () => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: prods }, { data: offs }] = await Promise.all([
+        supabase.from("products").select("id,name,slug,price,original_price,category,emoji,is_active").eq("is_active", true),
+        supabase.from("offers").select("id,discount_percentage,product_id,is_active").eq("is_active", true),
+      ]);
+      if (prods) setProducts(prods as Product[]);
+      if (offs) setOffers(offs as Offer[]);
+    };
+    load();
+  }, []);
+
+  const getDiscount = (productId: string) => {
+    const offer = offers.find((o) => o.product_id === productId);
+    return offer ? offer.discount_percentage : null;
+  };
 
   const filtered = useMemo(() => {
-    return allProducts.filter((p) => {
+    return products.filter((p) => {
       const matchCat = activeCategory === "All" || p.category === activeCategory;
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [search, activeCategory]);
+  }, [search, activeCategory, products]);
 
   return (
     <Layout>
@@ -64,13 +65,12 @@ const Shop = () => {
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl text-center">
             <h1 className="mb-4 font-heading text-4xl font-extrabold md:text-5xl">Shop</h1>
-            <p className="text-muted-foreground">Explore our range of premium dry fruits, healthy snacks, and gift collections.</p>
+            <p className="text-muted-foreground">Explore our signature cashew flavours, healthy snacks, and gift collections.</p>
           </motion.div>
         </div>
       </section>
 
       <section className="container py-10">
-        {/* Filters */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => (
@@ -87,38 +87,40 @@ const Shop = () => {
           </div>
           <div className="relative max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-full pl-9"
-            />
+            <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-full pl-9" />
           </div>
         </div>
 
-        {/* Grid */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.3 }}
-            >
-              <Link to={`/product/${p.id}`}>
-                <Card className="h-full overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                  <div className="flex h-36 items-center justify-center bg-gradient-to-br from-muted to-background text-5xl">
-                    {p.emoji}
-                  </div>
-                  <CardContent className="p-4">
-                    <span className="text-xs font-medium text-primary">{p.category}</span>
-                    <h3 className="mt-1 font-heading text-sm font-bold">{p.name}</h3>
-                    <p className="mt-2 text-lg font-bold text-primary">₹{p.price}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
+          {filtered.map((p, i) => {
+            const discount = getDiscount(p.id);
+            return (
+              <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03, duration: 0.3 }}>
+                <Link to={`/product/${p.slug}`}>
+                  <Card className="h-full overflow-hidden border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                    <div className="relative flex h-36 items-center justify-center bg-gradient-to-br from-muted to-background text-5xl">
+                      {p.emoji || "🥜"}
+                      {discount && (
+                        <span className="absolute right-2 top-2 rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">
+                          -{discount}%
+                        </span>
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <span className="text-xs font-medium text-primary">{p.category}</span>
+                      <h3 className="mt-1 font-heading text-sm font-bold">{p.name}</h3>
+                      <div className="mt-2 flex items-center gap-2">
+                        <p className="text-lg font-bold text-primary">₹{p.price}</p>
+                        {p.original_price && (
+                          <p className="text-sm text-muted-foreground line-through">₹{p.original_price}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
 
         {filtered.length === 0 && (

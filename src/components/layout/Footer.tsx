@@ -4,23 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/drumroast-logo.jpg";
 
+const INSTAGRAM_URL = "https://www.instagram.com/officialdrumroast?igsh=MXVyODhybWNkYm95bQ==";
+
 const Footer = () => {
   return (
     <footer className="border-t bg-foreground text-primary-foreground">
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <img src={logo} alt="DrumRoast" className="h-10 w-auto rounded-md" />
               <span className="font-heading text-xl font-bold">DrumRoast</span>
             </div>
             <p className="text-sm leading-relaxed opacity-80">
-              Traditionally crafted taste — premium dry fruits & healthy snacks by Kalpavriksha Agro Products Pvt Ltd.
+              Traditionally crafted taste — premium cashew flavours & healthy snacks by Kalpavriksha Agro Products Pvt Ltd.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div className="space-y-3">
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider">Quick Links</h4>
             <nav className="flex flex-col gap-2 text-sm opacity-80">
@@ -32,7 +32,6 @@ const Footer = () => {
             </nav>
           </div>
 
-          {/* Contact */}
           <div className="space-y-3">
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider">Get in Touch</h4>
             <div className="space-y-2 text-sm opacity-80">
@@ -42,7 +41,7 @@ const Footer = () => {
               </a>
             </div>
             <div className="flex gap-3 pt-2">
-              <a href="#" aria-label="Instagram" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
                 <Instagram className="h-4 w-4" />
               </a>
               <a href="#" aria-label="Facebook" className="rounded-full bg-primary-foreground/10 p-2 transition-colors hover:bg-primary-foreground/20">
@@ -54,7 +53,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Newsletter */}
           <div className="space-y-3">
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider">Newsletter</h4>
             <p className="text-sm opacity-80">Stay updated with new launches and seasonal collections.</p>
@@ -64,9 +62,7 @@ const Footer = () => {
                 placeholder="Your email"
                 className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/50"
               />
-              <Button variant="secondary" size="sm">
-                Join
-              </Button>
+              <Button variant="secondary" size="sm">Join</Button>
             </div>
           </div>
         </div>

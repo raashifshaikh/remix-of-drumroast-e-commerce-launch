@@ -1,26 +1,49 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/layout/Layout";
 import logo from "@/assets/drumroast-logo.jpg";
 
 const Login = () => {
   const { toast } = useToast();
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  if (user) {
+    navigate("/");
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      toast({
-        title: isSignUp ? "Account created!" : "Logged in!",
-        description: isSignUp ? "Welcome to DrumRoast. You can now place orders." : "Welcome back!",
-      });
-      setLoading(false);
-    }, 1000);
+
+    if (isSignUp) {
+      const { error } = await signUp(email, password, fullName);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Account created!", description: "Check your email to confirm, or you may be logged in automatically." });
+      }
+    } else {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Welcome back!" });
+        navigate("/");
+      }
+    }
+    setLoading(false);
   };
 
   return (
@@ -37,7 +60,7 @@ const Login = () => {
               {isSignUp ? "Create Account" : "Welcome Back"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isSignUp ? "Sign up to place orders and track your purchases." : "Login to your DrumRoast account."}
+              {isSignUp ? "Sign up to place orders and track purchases." : "Login to your DrumRoast account."}
             </p>
           </div>
 
@@ -45,16 +68,16 @@ const Login = () => {
             {isSignUp && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Full Name</label>
-                <Input required placeholder="Your name" />
+                <Input required placeholder="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium">Email</label>
-              <Input required type="email" placeholder="you@example.com" />
+              <Input required type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium">Password</label>
-              <Input required type="password" placeholder="••••••••" />
+              <Input required type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <Button type="submit" className="w-full rounded-full" disabled={loading}>
               {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Login"}
