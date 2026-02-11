@@ -1,148 +1,97 @@
 
+# DrumRoast UI Overhaul: Professional Look, Animations, Favicon, and Link Preview
 
-# DrumRoast Phase 2: Yellow-White Theme, Cashew Flavours, Admin Panel, and Instagram
+## Problems Identified
 
-## 1. Theme Overhaul — Yellow & White
+1. **Broken rendering**: Multiple GoTrueClient instances (duplicate Supabase clients) causing auth issues
+2. **Ugly emoji placeholders** instead of professional product imagery matching the cashew packaging style
+3. **No favicon or link preview** -- still shows default Lovable branding
+4. **No engaging animations** -- page transitions and interactions feel flat
+5. **Pages feel generic** -- need premium "snack brand" visual identity matching the packaging reference image (golden yellow, white packaging aesthetic)
 
-Shift the entire color palette from teal/turquoise primary to a warm yellow/golden primary with white backgrounds:
+---
 
-- **Primary color**: Warm golden yellow (e.g., `45 90% 50%`) -- buttons, links, highlights
-- **Primary foreground**: Dark brown text on yellow buttons
-- **Secondary**: Soft amber/brown for accents
-- **Background**: Pure white
-- **Muted sections**: Light cream/warm gray (`40 30% 96%`)
-- **Text**: Deep warm brown (`30 30% 15%`)
-- **Accent**: Keep soft pink for subtle highlights
+## 1. Favicon and Link Preview (SEO/Branding)
 
-Files changed: `src/index.css` (CSS variables for both light and dark modes)
+- Copy the DrumRoast logo to `public/favicon.png` for the favicon
+- Update `index.html`:
+  - Title: "DrumRoast - Premium Cashew Flavours & Healthy Snacks"
+  - Description: Brand tagline
+  - OG image: Use the DrumRoast logo for link previews (og:image, twitter:image)
+  - Favicon: Reference the logo
 
-## 2. Cashew Flavours Focus
+## 2. Fix Duplicate Supabase Client
 
-Replace the current generic product catalog with cashew-focused flavours as the primary product line:
+- The console shows "Multiple GoTrueClient instances" -- likely the old `.env`-based client file and the new hardcoded one are both being imported. Ensure only one `supabase` client instance exists across the app.
 
-**DrumRoast Signature Cashews:**
-- Classic Salted Cashews
-- Pepper Cashews
-- Masala Cashews
-- Cheese Cashews
-- Peri Peri Cashews
-- Honey Roasted Cashews
-- Chocolate Coated Cashews
-- Caramel Cashews
-- Garlic Herb Cashews
-- Tandoori Cashews
-- Plain Roasted Cashews (unsalted)
-- Cream & Onion Cashews
+## 3. Premium Product Card Design (Packaging-Inspired)
 
-**Other Products** (keep as secondary):
-- Trail Mixes, Gift Boxes, Makhana, etc.
+Replace emoji-based product cards with a professional, packaging-inspired design:
 
-Update: `src/pages/Shop.tsx`, `src/pages/ProductDetail.tsx`, `src/pages/Index.tsx` (featured products section)
+- **Product cards** will feature a golden-yellow gradient background with a large cashew illustration style, the product name in elegant typography, and a subtle packaging-pouch shape overlay
+- Cards will use the brand's golden yellow and white palette from the reference image
+- Each product gets a unique gradient/color accent based on its flavor
+- "Add to Cart" button integrated directly on hover
 
-## 3. Instagram Link Integration
+## 4. Unwrapping Animation Effect
 
-Update all Instagram icon links across the site to point to the real profile:
-`https://www.instagram.com/officialdrumroast?igsh=MXVyODhybWNkYm95bQ==`
+When clicking on a product card or navigating between pages:
 
-Files changed: `src/components/layout/Footer.tsx`, `src/pages/Contact.tsx`
+- **Product card click**: A "peel/unwrap" animation using Framer Motion -- the card scales up, rotates slightly, and reveals the product detail page with a smooth transition
+- **Page transitions**: Wrap routes in `AnimatePresence` with slide/fade transitions
+- **Hover effects on cards**: Subtle 3D tilt effect, shadow lift, and a "package opening" micro-animation (top flap lifting)
+- **Button interactions**: Satisfying press/bounce animations on all CTAs
 
-## 4. Database Setup (Supabase)
+### Technical approach:
+- Add `AnimatePresence` in `App.tsx` around `Routes`
+- Create page transition wrapper component with enter/exit animations
+- Product cards: `whileHover` with scale, rotateY, and shadow changes
+- Product detail page: Enter animation that mimics "unwrapping" (content slides in from center outward)
 
-Create the following tables via migration:
+## 5. Enhanced Page Designs
 
-**products** — id, name, slug, description, price, original_price (for offers), category, subcategory, image_url, ingredients, nutrition, storage_instructions, packaging, is_featured, is_active, stock_status, created_at
+### Home Page
+- Hero section with a large background pattern of cashews (CSS gradient/pattern, not image)
+- Animated floating cashew emoji decorations
+- Counter animation for stats (e.g., "12+ Flavours", "1000+ Happy Customers")
+- Smooth scroll-triggered reveal for each section
 
-**offers** — id, title, description, discount_percentage, product_id (nullable for site-wide), start_date, end_date, is_active, created_at
+### Shop Page
+- Category filter pills with active animation (sliding indicator)
+- Product grid with staggered load animation
+- Each card has a "packaging pouch" visual style using CSS (rounded top, sealed edge look)
 
-**profiles** — id (references auth.users), full_name, phone, address, city, state, pincode, created_at
+### Product Detail Page
+- Split layout with large product showcase on left (with packaging-style frame)
+- Smooth accordion for ingredients/nutrition/storage details
+- "Add to Cart" button with satisfying bounce + confetti micro-animation
 
-**user_roles** — id, user_id (references auth.users), role (enum: admin, user)
+### All Pages
+- Smooth scroll-to-top on navigation
+- Loading skeleton states for database-fetched content
 
-**orders** — id, user_id, items (jsonb), total, status, shipping_address (jsonb), created_at
-
-**cart_items** — id, user_id, product_id, quantity
-
-RLS policies:
-- Products: public read, admin insert/update/delete
-- Offers: public read, admin insert/update/delete
-- Profiles: users read/update own profile
-- Orders: users read own orders, admin read all
-- Cart: users manage own cart items
-- User_roles: only readable via `has_role()` security definer function
-
-Seed data: Insert all cashew flavours and other products into the products table.
-
-## 5. Admin Panel
-
-### Access Control
-- Admin routes protected by role check using `has_role()` function
-- Route: `/admin` with sub-routes for Products, Offers, Orders
-- Only users with `admin` role in `user_roles` table can access
-- Non-admin users see a "Not Authorized" page
-
-### Admin Dashboard (`/admin`)
-- Overview cards: Total Products, Active Offers, Recent Orders count
-- Quick-action buttons to manage products and offers
-
-### Product Management (`/admin/products`)
-- Table listing all products with name, price, category, status
-- "Add Product" form: name, description, price, original_price, category, subcategory, ingredients, nutrition, storage, packaging, featured toggle, active toggle
-- Edit existing products inline or via modal
-- Delete products
-
-### Offers Management (`/admin/offers`)
-- Create offers: title, description, discount %, link to product (optional), start/end date
-- Toggle offers active/inactive
-- Active offers display on the Shop page as banners and on product cards as discount badges
-
-### Orders View (`/admin/orders`)
-- List all orders with customer name, total, status, date
-- Update order status (Pending, Confirmed, Shipped, Delivered)
-
-## 6. Authentication Update
-
-Update `src/pages/Login.tsx` to use real Supabase Auth:
-- Email/password signup and login
-- On signup, auto-create profile via database trigger
-- After login, check if user has admin role and show "Go to Admin" link in header
-
-Update `src/components/layout/Header.tsx`:
-- Show user name/avatar when logged in
-- Show "Admin" link in nav if user is admin
-- Logout button
-
-## 7. Shop & Product Pages — Database Integration
-
-- `Shop.tsx`: Fetch products from Supabase instead of hardcoded array
-- `ProductDetail.tsx`: Fetch single product by slug/id from Supabase
-- Show offer badges (discount %) on products with active offers
-- Show original price with strikethrough when offer is active
-
-## Technical Summary
-
-**New files:**
-- `src/pages/admin/AdminLayout.tsx` — admin shell with sidebar nav
-- `src/pages/admin/Dashboard.tsx` — overview stats
-- `src/pages/admin/Products.tsx` — product CRUD
-- `src/pages/admin/Offers.tsx` — offer management
-- `src/pages/admin/Orders.tsx` — order listing
-- `src/hooks/useAuth.tsx` — auth context with role checking
-- `src/components/ProtectedRoute.tsx` — route guard for admin
+## 6. Files to Create/Modify
 
 **Modified files:**
-- `src/index.css` — yellow/white theme
-- `src/App.tsx` — add admin routes
-- `src/pages/Shop.tsx` — Supabase integration
-- `src/pages/ProductDetail.tsx` — Supabase integration
-- `src/pages/Index.tsx` — updated featured products
-- `src/pages/Login.tsx` — real Supabase auth
-- `src/components/layout/Header.tsx` — auth state, admin link
-- `src/components/layout/Footer.tsx` — Instagram link
+- `index.html` -- favicon, title, OG meta tags
+- `src/index.css` -- refined theme, packaging-inspired utility classes
+- `tailwind.config.ts` -- new keyframes for unwrap, tilt, float animations
+- `src/App.tsx` -- AnimatePresence for route transitions
+- `src/pages/Index.tsx` -- premium hero, animated stats, floating elements
+- `src/pages/Shop.tsx` -- packaging-style cards, better filter UX, staggered animations
+- `src/pages/ProductDetail.tsx` -- unwrap entrance, accordion details, polished layout
+- `src/pages/Cart.tsx` -- better empty state with animation
+- `src/pages/About.tsx` -- scroll-triggered animations
+- `src/pages/Cafe.tsx` -- enhanced card animations
+- `src/pages/Login.tsx` -- polished form with logo animation
+- `src/pages/NotFound.tsx` -- branded 404 with Layout wrapper
+- `src/components/layout/Header.tsx` -- subtle scroll-based background transition
+- `src/components/layout/Footer.tsx` -- refined styling
+- `src/integrations/supabase/client.ts` -- fix duplicate instance
 
-**Database migrations:**
-- Create `app_role` enum, `products`, `offers`, `profiles`, `user_roles`, `orders`, `cart_items` tables
-- Create `has_role()` security definer function
-- Create trigger for auto-creating profile on signup
-- RLS policies for all tables
-- Seed cashew flavour products
+**New files:**
+- `src/components/PageTransition.tsx` -- reusable page transition wrapper
+- `src/components/ProductCard.tsx` -- premium product card with packaging style and hover animations
 
+**Copied files:**
+- `public/favicon.png` -- DrumRoast logo for favicon
