@@ -1,89 +1,148 @@
 
 
-# DrumRoast — Premium Dry Fruits & Healthy Snacks Ecommerce Website
+# DrumRoast Phase 2: Yellow-White Theme, Cashew Flavours, Admin Panel, and Instagram
 
-## Brand & Visual Identity
-- **Color palette**: Teal/turquoise primary, warm yellow (from logo) highlight, soft pink accents, white backgrounds
-- **Typography**: Clean, rounded, friendly fonts — modern Indian premium feel
-- **Logo**: DrumRoast logo embedded across header/footer
-- **Overall feel**: Bright, spacious, premium retail — NOT dark luxury
+## 1. Theme Overhaul — Yellow & White
 
----
+Shift the entire color palette from teal/turquoise primary to a warm yellow/golden primary with white backgrounds:
 
-## Phase 1: Core Pages & Layout
+- **Primary color**: Warm golden yellow (e.g., `45 90% 50%`) -- buttons, links, highlights
+- **Primary foreground**: Dark brown text on yellow buttons
+- **Secondary**: Soft amber/brown for accents
+- **Background**: Pure white
+- **Muted sections**: Light cream/warm gray (`40 30% 96%`)
+- **Text**: Deep warm brown (`30 30% 15%`)
+- **Accent**: Keep soft pink for subtle highlights
 
-### Global Navigation & Footer
-- Sticky header with logo, nav links (Home, Shop, About, Café, Corporate, Contact), cart icon, and login/signup button
-- Footer with About, Shop, Corporate, Policies links, newsletter signup, social media icons, and email (officialdrumroast@gmail.com)
+Files changed: `src/index.css` (CSS variables for both light and dark modes)
 
-### Home Page
-- **Hero section** with headline "Traditionally Crafted Taste", subtext, and CTA buttons (Shop Now / Explore Collections)
-- **Brand introduction** section with story text
-- **Segment highlights** — DrumRoast Signature, Daily, Café cards
-- **Benefits icons** — High Quality Ingredients, Nutrient Rich, Carefully Processed, Hygienic Packaging
-- **Featured products** carousel/grid
-- **Newsletter signup** section
+## 2. Cashew Flavours Focus
 
-### About Page
-- Brand story with "Our Story" title and full content about heritage, processing, and values
+Replace the current generic product catalog with cashew-focused flavours as the primary product line:
 
-### Café Experience Page
-- Brand storytelling page about the café concept — specialty beverages, dry fruit desserts, smoothie bowls
-- Positioned as future growth narrative
+**DrumRoast Signature Cashews:**
+- Classic Salted Cashews
+- Pepper Cashews
+- Masala Cashews
+- Cheese Cashews
+- Peri Peri Cashews
+- Honey Roasted Cashews
+- Chocolate Coated Cashews
+- Caramel Cashews
+- Garlic Herb Cashews
+- Tandoori Cashews
+- Plain Roasted Cashews (unsalted)
+- Cream & Onion Cashews
 
-### Contact Page
-- Email contact form (sends to officialdrumroast@gmail.com)
-- Social media links section
-- No phone numbers
+**Other Products** (keep as secondary):
+- Trail Mixes, Gift Boxes, Makhana, etc.
 
-### Business / Bulk Orders Page
-- Corporate gifting & wholesale enquiries info
-- Contact form with fields: Name, Organization, Email, Message
+Update: `src/pages/Shop.tsx`, `src/pages/ProductDetail.tsx`, `src/pages/Index.tsx` (featured products section)
 
----
+## 3. Instagram Link Integration
 
-## Phase 2: Ecommerce & Product System (Supabase Backend)
+Update all Instagram icon links across the site to point to the real profile:
+`https://www.instagram.com/officialdrumroast?igsh=MXVyODhybWNkYm95bQ==`
 
-### Database Setup
-- **Products table**: name, description, price, images, category, subcategory, nutritional info, ingredients, storage instructions, packaging details, stock status, featured flag
-- **Categories table**: DrumRoast Signature, DrumRoast Daily, Gift Collections
-- **Cart table**: user_id, product_id, quantity
-- **Orders table**: user_id, items, total, status, shipping address (payment integration placeholder for later)
-- **Profiles table**: linked to auth.users for name, address, phone
-- Pre-seeded product data for all categories (cashews, almonds, pistachios, trail mixes, makhanas, gift boxes, etc.)
+Files changed: `src/components/layout/Footer.tsx`, `src/pages/Contact.tsx`
 
-### Shop Page
-- Category filters (Signature, Daily, Gift Collections)
-- Product grid with images, names, prices
-- Search and sort functionality
+## 4. Database Setup (Supabase)
 
-### Product Detail Page
-- Large product image
-- Nutritional highlights, ingredient listing, storage instructions, packaging details
-- Add to cart button
-- Related products section
+Create the following tables via migration:
 
-### Cart & Checkout
-- Cart drawer/page showing items, quantities, totals
-- Checkout flow collecting shipping address and order summary
-- **Payment placeholder**: "Pay via UPI" button that confirms the order (actual UPI gateway to be integrated later)
-- Order confirmation page
+**products** — id, name, slug, description, price, original_price (for offers), category, subcategory, image_url, ingredients, nutrition, storage_instructions, packaging, is_featured, is_active, stock_status, created_at
 
----
+**offers** — id, title, description, discount_percentage, product_id (nullable for site-wide), start_date, end_date, is_active, created_at
 
-## Phase 3: User Authentication
+**profiles** — id (references auth.users), full_name, phone, address, city, state, pincode, created_at
 
-- **Optional accounts** — browse freely, login required only to place orders
-- Email/password signup and login via Supabase Auth
-- User profile with saved addresses and order history
-- Guest users prompted to sign up/login when adding to cart or at checkout
+**user_roles** — id, user_id (references auth.users), role (enum: admin, user)
 
----
+**orders** — id, user_id, items (jsonb), total, status, shipping_address (jsonb), created_at
 
-## Key Technical Details
-- Fully responsive design (mobile-first)
-- SEO-friendly page structure with proper meta tags
-- Fast loading with optimized images
-- Supabase for database, auth, and storage (product images)
-- Scalable architecture ready for UPI payment integration later
+**cart_items** — id, user_id, product_id, quantity
+
+RLS policies:
+- Products: public read, admin insert/update/delete
+- Offers: public read, admin insert/update/delete
+- Profiles: users read/update own profile
+- Orders: users read own orders, admin read all
+- Cart: users manage own cart items
+- User_roles: only readable via `has_role()` security definer function
+
+Seed data: Insert all cashew flavours and other products into the products table.
+
+## 5. Admin Panel
+
+### Access Control
+- Admin routes protected by role check using `has_role()` function
+- Route: `/admin` with sub-routes for Products, Offers, Orders
+- Only users with `admin` role in `user_roles` table can access
+- Non-admin users see a "Not Authorized" page
+
+### Admin Dashboard (`/admin`)
+- Overview cards: Total Products, Active Offers, Recent Orders count
+- Quick-action buttons to manage products and offers
+
+### Product Management (`/admin/products`)
+- Table listing all products with name, price, category, status
+- "Add Product" form: name, description, price, original_price, category, subcategory, ingredients, nutrition, storage, packaging, featured toggle, active toggle
+- Edit existing products inline or via modal
+- Delete products
+
+### Offers Management (`/admin/offers`)
+- Create offers: title, description, discount %, link to product (optional), start/end date
+- Toggle offers active/inactive
+- Active offers display on the Shop page as banners and on product cards as discount badges
+
+### Orders View (`/admin/orders`)
+- List all orders with customer name, total, status, date
+- Update order status (Pending, Confirmed, Shipped, Delivered)
+
+## 6. Authentication Update
+
+Update `src/pages/Login.tsx` to use real Supabase Auth:
+- Email/password signup and login
+- On signup, auto-create profile via database trigger
+- After login, check if user has admin role and show "Go to Admin" link in header
+
+Update `src/components/layout/Header.tsx`:
+- Show user name/avatar when logged in
+- Show "Admin" link in nav if user is admin
+- Logout button
+
+## 7. Shop & Product Pages — Database Integration
+
+- `Shop.tsx`: Fetch products from Supabase instead of hardcoded array
+- `ProductDetail.tsx`: Fetch single product by slug/id from Supabase
+- Show offer badges (discount %) on products with active offers
+- Show original price with strikethrough when offer is active
+
+## Technical Summary
+
+**New files:**
+- `src/pages/admin/AdminLayout.tsx` — admin shell with sidebar nav
+- `src/pages/admin/Dashboard.tsx` — overview stats
+- `src/pages/admin/Products.tsx` — product CRUD
+- `src/pages/admin/Offers.tsx` — offer management
+- `src/pages/admin/Orders.tsx` — order listing
+- `src/hooks/useAuth.tsx` — auth context with role checking
+- `src/components/ProtectedRoute.tsx` — route guard for admin
+
+**Modified files:**
+- `src/index.css` — yellow/white theme
+- `src/App.tsx` — add admin routes
+- `src/pages/Shop.tsx` — Supabase integration
+- `src/pages/ProductDetail.tsx` — Supabase integration
+- `src/pages/Index.tsx` — updated featured products
+- `src/pages/Login.tsx` — real Supabase auth
+- `src/components/layout/Header.tsx` — auth state, admin link
+- `src/components/layout/Footer.tsx` — Instagram link
+
+**Database migrations:**
+- Create `app_role` enum, `products`, `offers`, `profiles`, `user_roles`, `orders`, `cart_items` tables
+- Create `has_role()` security definer function
+- Create trigger for auto-creating profile on signup
+- RLS policies for all tables
+- Seed cashew flavour products
 
