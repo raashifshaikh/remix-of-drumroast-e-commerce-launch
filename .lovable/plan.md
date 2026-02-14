@@ -1,67 +1,58 @@
 
 
-# Fix Plan: UI Issues, Footer Contrast, Admin Account Setup
+# Fix Vercel 404, Add Product Images, Sitemap, and SEO
 
-## Issues Found
+## Issues to Fix
 
-1. **Footer text invisible** -- The footer uses `bg-foreground` (dark brown) with `text-primary-foreground` (also dark brown), making all text unreadable
-2. **No auto-admin trigger** -- The `handle_new_user` trigger creates a profile, but there's no mechanism to assign the first user as admin
-3. **No admin account exists yet** -- The `user_roles` table is empty
-4. **Pages render fine** -- The Shop, ProductDetail, About, Cafe, Corporate, Contact pages all look correct in code. The "improperly rendered page" in the screenshot is specifically the footer contrast issue
+### 1. Vercel 404 Error (Critical)
+The screenshot shows a "404: NOT_FOUND" on `drumroast.vercel.app`. This happens because Vercel doesn't know to redirect all routes to `index.html` for your single-page React app. When someone visits `/shop` or `/about` directly, Vercel looks for a file at that path and finds nothing.
 
-## Plan
+**Fix:** Add a `vercel.json` file with a rewrite rule that sends all requests to `index.html`.
 
-### 1. Fix Footer Contrast (Critical Visual Bug)
+### 2. Product Image Upload in Admin
+Currently, admin can only set an emoji for products. The `products` table already has an `image_url` column, but the admin form doesn't use it. We need:
 
-**File:** `src/components/layout/Footer.tsx`
+- Create a Supabase Storage bucket called `product-images` for storing product photos
+- Add an image upload field in the admin Products form
+- Show the uploaded image in the product listing table
 
-The footer currently uses `bg-foreground text-primary-foreground` which results in dark-on-dark text. Fix by using proper contrast colors -- white/light text on the dark background.
+### 3. Product Cards Show Images Instead of Emoji
+Update `ProductCard.tsx` and `ProductDetail.tsx` to display the product's `image_url` when available, falling back to emoji if no image is uploaded.
 
-- Change text classes to use explicit light colors (e.g., `text-white`, `text-white/80`)
-- Fix social icon hover states
-- Fix newsletter input contrast
+### 4. Sitemap for Google
+Create a `public/sitemap.xml` with all static routes. Dynamic product pages can be added later when products are known.
 
-### 2. Database: Auto-Assign Admin to First Signup
+### 5. SEO Improvements
+- Add structured data (JSON-LD) for the business on the home page
+- Add canonical URLs and proper meta tags per page
+- Create a reusable SEO/meta component
+- Update `robots.txt` with sitemap reference
 
-Create a migration with a trigger that automatically assigns the `admin` role to the first user who signs up (when no admin exists yet). This way, when you sign up with `officialdrumroast@gmail.com`, you'll automatically become admin.
-
-```sql
-CREATE OR REPLACE FUNCTION public.handle_first_admin()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE role = 'admin') THEN
-    INSERT INTO public.user_roles (user_id, role)
-    VALUES (NEW.user_id, 'admin')
-    ON CONFLICT DO NOTHING;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER on_first_admin_assignment
-  AFTER INSERT ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_first_admin();
-```
-
-### 3. Minor Header Fix
-
-Add admin link visibility in mobile menu and ensure logout works properly on mobile.
+---
 
 ## Technical Details
 
-### Files Modified:
-- `src/components/layout/Footer.tsx` -- fix text contrast on dark background
-- New database migration -- add `handle_first_admin` trigger
+### Files to Create
+- `vercel.json` -- Rewrite rules for SPA routing on Vercel
+- `public/sitemap.xml` -- Static sitemap with all main routes
+- `supabase/migrations/[timestamp]_create_product_images_bucket.sql` -- Storage bucket for product images
 
-### How Admin Setup Works:
-1. You visit the site and click "Sign Up"
-2. Enter email: `officialdrumroast@gmail.com` and your chosen password
-3. The trigger automatically assigns you the `admin` role
-4. After login, the "Admin" link appears in the navigation
-5. All subsequent signups will be regular users (not admin)
+### Files to Modify
+- `src/pages/admin/Products.tsx` -- Add image upload field, show image preview in table
+- `src/components/ProductCard.tsx` -- Show `image_url` when available, fallback to emoji
+- `src/pages/ProductDetail.tsx` -- Show product image instead of emoji when available
+- `src/pages/Index.tsx` -- Add JSON-LD structured data for the business
+- `public/robots.txt` -- Add sitemap URL reference
+- `index.html` -- Add canonical link tag
+
+### How Image Upload Works
+1. Admin selects a photo in the product form
+2. The file is uploaded to Supabase Storage (`product-images` bucket)
+3. The public URL is saved in the product's `image_url` column
+4. ProductCard and ProductDetail display the image with a gradient overlay, falling back to emoji when no image exists
+
+### Storage Bucket Setup
+- Bucket name: `product-images`
+- Public access: Yes (so images can be displayed without auth)
+- RLS policy: Only admins can upload/delete, anyone can view
 
