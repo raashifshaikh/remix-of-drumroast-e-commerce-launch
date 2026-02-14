@@ -1,58 +1,77 @@
 
 
-# Fix Vercel 404, Add Product Images, Sitemap, and SEO
+# Functional Cart + WhatsApp Checkout
 
-## Issues to Fix
+## Overview
 
-### 1. Vercel 404 Error (Critical)
-The screenshot shows a "404: NOT_FOUND" on `drumroast.vercel.app`. This happens because Vercel doesn't know to redirect all routes to `index.html` for your single-page React app. When someone visits `/shop` or `/about` directly, Vercel looks for a file at that path and finds nothing.
+Build a fully working cart system that requires login, stores items in the `cart_items` Supabase table, and leads to a checkout page that redirects users to WhatsApp to place their order directly with the owner.
 
-**Fix:** Add a `vercel.json` file with a rewrite rule that sends all requests to `index.html`.
+## What Changes
 
-### 2. Product Image Upload in Admin
-Currently, admin can only set an emoji for products. The `products` table already has an `image_url` column, but the admin form doesn't use it. We need:
+### 1. Cart Context (new file: `src/hooks/useCart.tsx`)
+A React context that manages cart state using the existing `cart_items` table in Supabase:
+- `addToCart(productId, quantity)` -- inserts/updates cart item (requires auth)
+- `removeFromCart(productId)` -- deletes item
+- `updateQuantity(productId, quantity)` -- updates quantity
+- `clearCart()` -- removes all items
+- `cartItems` -- array of cart items with product details
+- `cartCount` -- total item count (shown as badge on cart icon in header)
+- Auto-loads cart on login, clears on logout
 
-- Create a Supabase Storage bucket called `product-images` for storing product photos
-- Add an image upload field in the admin Products form
-- Show the uploaded image in the product listing table
+### 2. "Add to Cart" requires login
+- **ProductDetail.tsx**: The "Add to Cart" button checks if user is logged in. If not, redirect to `/login` with a toast message "Please sign in to add items to cart"
+- **ProductCard.tsx**: Same behavior for the cart icon button on hover
 
-### 3. Product Cards Show Images Instead of Emoji
-Update `ProductCard.tsx` and `ProductDetail.tsx` to display the product's `image_url` when available, falling back to emoji if no image is uploaded.
+### 3. Cart Page (rewrite `src/pages/Cart.tsx`)
+Replace the static empty-cart page with a functional cart:
+- Shows list of cart items with product image/emoji, name, price, quantity controls (+/- buttons)
+- "Remove" button per item
+- Cart summary sidebar showing subtotal and total
+- "Proceed to Checkout" button (navigates to `/checkout`)
+- Empty state still shown when cart has no items
+- Login prompt if user is not signed in
 
-### 4. Sitemap for Google
-Create a `public/sitemap.xml` with all static routes. Dynamic product pages can be added later when products are known.
+### 4. Checkout Page (new file: `src/pages/Checkout.tsx`)
+- Displays order summary (all items, quantities, prices, total)
+- Prominent "Order via WhatsApp" button that opens WhatsApp with a pre-formatted message:
+  - URL: `https://wa.me/917715808527?text=...`
+  - Message includes: order items list, quantities, prices, and total
+- The message is URL-encoded and formatted clearly
+- Add route `/checkout` in App.tsx
 
-### 5. SEO Improvements
-- Add structured data (JSON-LD) for the business on the home page
-- Add canonical URLs and proper meta tags per page
-- Create a reusable SEO/meta component
-- Update `robots.txt` with sitemap reference
+### 5. Header Cart Badge
+- Update Header.tsx to show a small badge with cart item count on the cart icon
+- Uses the cart context to get the count
 
----
+### 6. Wrap App with CartProvider
+- Add `CartProvider` inside `AuthProvider` in App.tsx so cart is available everywhere
 
 ## Technical Details
 
 ### Files to Create
-- `vercel.json` -- Rewrite rules for SPA routing on Vercel
-- `public/sitemap.xml` -- Static sitemap with all main routes
-- `supabase/migrations/[timestamp]_create_product_images_bucket.sql` -- Storage bucket for product images
+- `src/hooks/useCart.tsx` -- Cart context with Supabase integration
+- `src/pages/Checkout.tsx` -- Checkout page with WhatsApp redirect
 
 ### Files to Modify
-- `src/pages/admin/Products.tsx` -- Add image upload field, show image preview in table
-- `src/components/ProductCard.tsx` -- Show `image_url` when available, fallback to emoji
-- `src/pages/ProductDetail.tsx` -- Show product image instead of emoji when available
-- `src/pages/Index.tsx` -- Add JSON-LD structured data for the business
-- `public/robots.txt` -- Add sitemap URL reference
-- `index.html` -- Add canonical link tag
+- `src/pages/Cart.tsx` -- Full rewrite to show actual cart items
+- `src/pages/ProductDetail.tsx` -- Wire "Add to Cart" to cart context with auth check
+- `src/components/ProductCard.tsx` -- Wire cart button with auth check
+- `src/components/layout/Header.tsx` -- Add cart count badge
+- `src/App.tsx` -- Add CartProvider wrapper and `/checkout` route
 
-### How Image Upload Works
-1. Admin selects a photo in the product form
-2. The file is uploaded to Supabase Storage (`product-images` bucket)
-3. The public URL is saved in the product's `image_url` column
-4. ProductCard and ProductDetail display the image with a gradient overlay, falling back to emoji when no image exists
+### WhatsApp Message Format
+When the user clicks "Order via WhatsApp", a message like this opens:
+```
+Hi! I'd like to place an order from DrumRoast:
 
-### Storage Bucket Setup
-- Bucket name: `product-images`
-- Public access: Yes (so images can be displayed without auth)
-- RLS policy: Only admins can upload/delete, anyone can view
+1. Masala Cashew (x2) - Rs.598
+2. Chocolate Cashew (x1) - Rs.349
+
+Total: Rs.947
+
+Please confirm availability and payment details.
+```
+
+### Cart-Database Integration
+The existing `cart_items` table has: `id`, `user_id`, `product_id`, `quantity`, `created_at` with proper RLS policies (users can only access their own items). The context will join with `products` table to get names, prices, and images for display.
 
