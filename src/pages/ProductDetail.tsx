@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ShoppingCart, Leaf, Package, Thermometer, Info, ChevronDown } from "lucide-react";
@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
 import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 
 type Product = {
   id: string;
@@ -132,8 +134,18 @@ const ProductDetail = () => {
     );
   }
 
-  const handleAddToCart = () => {
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need to be logged in to add items to cart." });
+      navigate("/login");
+      return;
+    }
     setAddedToCart(true);
+    await addToCart(product.id);
     toast({ title: "Added to cart!", description: `${product.name} has been added to your cart.` });
     setTimeout(() => setAddedToCart(false), 2000);
   };
