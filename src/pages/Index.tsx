@@ -62,15 +62,27 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   return <span ref={ref}>{count}{suffix}</span>;
 }
 
-type FeaturedProduct = { id: string; name: string; slug: string; price: number; category: string; emoji: string | null };
+type FeaturedProduct = { id: string; name: string; slug: string; price: number; category: string; emoji: string | null; image_url: string | null };
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "DrumRoast",
+  alternateName: "Kalpavriksha Agro Products",
+  url: "https://drumroast.vercel.app",
+  logo: "https://drumroast.vercel.app/favicon.png",
+  description: "Premium drum-roasted cashew flavours, healthy snacks & gift collections.",
+  contactPoint: { "@type": "ContactPoint", contactType: "customer service", availableLanguage: ["English", "Hindi"] },
+  sameAs: ["https://instagram.com/drumroast"],
+};
 
 const Index = () => {
   const [featured, setFeatured] = useState<FeaturedProduct[]>([]);
 
   useEffect(() => {
     supabase
-      .from("products")
-      .select("id,name,slug,price,category,emoji")
+      .from("products") 
+      .select("id,name,slug,price,category,emoji,image_url")
       .eq("is_featured", true)
       .eq("is_active", true)
       .limit(6)
@@ -79,6 +91,7 @@ const Index = () => {
 
   return (
     <Layout>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/15 via-muted to-accent/10">
         {/* Floating cashew decorations */}
@@ -220,6 +233,7 @@ const Index = () => {
                 price={p.price}
                 category={p.category}
                 emoji={p.emoji}
+                imageUrl={p.image_url}
                 index={i}
               />
             ))}

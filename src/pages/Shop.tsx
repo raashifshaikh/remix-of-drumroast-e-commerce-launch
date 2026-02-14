@@ -16,6 +16,7 @@ type Product = {
   original_price: number | null;
   category: string;
   emoji: string | null;
+  image_url: string | null;
   is_active: boolean | null;
 };
 
@@ -39,7 +40,7 @@ const Shop = () => {
     const load = async () => {
       setLoading(true);
       const [{ data: prods }, { data: offs }] = await Promise.all([
-        supabase.from("products").select("id,name,slug,price,original_price,category,emoji,is_active").eq("is_active", true),
+        supabase.from("products").select("id,name,slug,price,original_price,category,emoji,image_url,is_active").eq("is_active", true),
         supabase.from("offers").select("id,discount_percentage,product_id,is_active").eq("is_active", true),
       ]);
       if (prods) setProducts(prods as Product[]);
@@ -126,6 +127,7 @@ const Shop = () => {
                 originalPrice={p.original_price}
                 category={p.category}
                 emoji={p.emoji}
+                imageUrl={p.image_url}
                 discount={getDiscount(p.id)}
                 index={i}
               />

@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 type Product = {
   id: string;
@@ -19,6 +19,7 @@ type Product = {
   category: string;
   subcategory: string | null;
   emoji: string | null;
+  image_url: string | null;
   ingredients: string | null;
   nutrition: string | null;
   storage_instructions: string | null;
@@ -29,7 +30,7 @@ type Product = {
 
 const emptyProduct = {
   name: "", slug: "", description: "", price: 0, original_price: null as number | null,
-  category: "Signature", subcategory: "Cashews", emoji: "🥜",
+  category: "Signature", subcategory: "Cashews", emoji: "🥜", image_url: null as string | null,
   ingredients: "", nutrition: "", storage_instructions: "", packaging: "",
   is_featured: false, is_active: true,
 };
@@ -40,6 +41,7 @@ const AdminProducts = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyProduct);
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
@@ -47,6 +49,24 @@ const AdminProducts = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    setForm({ ...form, image_url: urlData.publicUrl });
+    setUploading(false);
+    toast({ title: "Image uploaded" });
+  };
 
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -79,9 +99,9 @@ const AdminProducts = () => {
     setForm({
       name: p.name, slug: p.slug, description: p.description || "", price: p.price,
       original_price: p.original_price, category: p.category, subcategory: p.subcategory || "",
-      emoji: p.emoji || "🥜", ingredients: p.ingredients || "", nutrition: p.nutrition || "",
-      storage_instructions: p.storage_instructions || "", packaging: p.packaging || "",
-      is_featured: p.is_featured ?? false, is_active: p.is_active ?? true,
+      emoji: p.emoji || "🥜", image_url: p.image_url, ingredients: p.ingredients || "",
+      nutrition: p.nutrition || "", storage_instructions: p.storage_instructions || "",
+      packaging: p.packaging || "", is_featured: p.is_featured ?? false, is_active: p.is_active ?? true,
     });
     setOpen(true);
   };
@@ -102,6 +122,31 @@ const AdminProducts = () => {
               <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               <Input placeholder="Slug (auto)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
               <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+
+              {/* Image upload */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Product Image</label>
+                {form.image_url && (
+                  <div className="relative">
+                    <img src={form.image_url} alt="Preview" className="h-32 w-full rounded-lg object-cover" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      className="absolute right-1 top-1 h-7 text-xs"
+                      onClick={() => setForm({ ...form, image_url: null })}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Uploading..." : "Upload image"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <Input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} />
                 <Input type="number" placeholder="Original Price" value={form.original_price ?? ""} onChange={(e) => setForm({ ...form, original_price: e.target.value ? +e.target.value : null })} />
@@ -145,7 +190,16 @@ const AdminProducts = () => {
           <TableBody>
             {products.map((p) => (
               <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.emoji} {p.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="h-8 w-8 rounded object-cover" />
+                    ) : (
+                      <span>{p.emoji}</span>
+                    )}
+                    {p.name}
+                  </div>
+                </TableCell>
                 <TableCell>₹{p.price}</TableCell>
                 <TableCell>{p.category}</TableCell>
                 <TableCell>{p.is_active ? "Active" : "Inactive"}</TableCell>

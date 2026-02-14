@@ -19,6 +19,7 @@ type Product = {
   category: string;
   subcategory: string | null;
   emoji: string | null;
+  image_url: string | null;
   ingredients: string | null;
   nutrition: string | null;
   storage_instructions: string | null;
@@ -159,22 +160,28 @@ const ProductDetail = () => {
             initial={{ opacity: 0, scale: 0.9, rotateY: -10 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className={`relative flex items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-12`}
+            className={`relative flex items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} ${product.image_url ? '' : 'p-12'}`}
             style={{ perspective: 1000 }}
           >
-            <div className="absolute inset-0 opacity-10"
-              style={{
-                backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
-              }}
-            />
-            <div className="absolute left-0 right-0 top-0 h-4 bg-gradient-to-b from-black/10 to-transparent" />
-            <motion.div
-              className="relative z-10 text-[10rem] drop-shadow-2xl"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {product.emoji || "🥜"}
-            </motion.div>
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" style={{ minHeight: 320 }} />
+            ) : (
+              <>
+                <div className="absolute inset-0 opacity-10"
+                  style={{
+                    backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
+                  }}
+                />
+                <div className="absolute left-0 right-0 top-0 h-4 bg-gradient-to-b from-black/10 to-transparent" />
+                <motion.div
+                  className="relative z-10 text-[10rem] drop-shadow-2xl"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  {product.emoji || "🥜"}
+                </motion.div>
+              </>
+            )}
           </motion.div>
 
           {/* Details */}

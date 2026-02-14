@@ -11,6 +11,7 @@ type ProductCardProps = {
   originalPrice?: number | null;
   category: string;
   emoji?: string | null;
+  imageUrl?: string | null;
   discount?: number | null;
   index?: number;
 };
@@ -28,6 +29,7 @@ const ProductCard = ({
   originalPrice,
   category,
   emoji,
+  imageUrl,
   discount,
   index = 0,
 }: ProductCardProps) => {
@@ -51,21 +53,25 @@ const ProductCard = ({
             <div
               className={`relative flex h-44 items-center justify-center bg-gradient-to-br ${gradient} overflow-hidden`}
             >
-              {/* Packaging texture overlay */}
-              <div className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
-                }}
-              />
-              {/* Pouch seal line */}
-              <div className="absolute left-0 right-0 top-0 h-3 bg-gradient-to-b from-black/10 to-transparent" />
-              <motion.div
-                className="relative z-10 text-6xl drop-shadow-lg"
-                whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
-                transition={{ duration: 0.5 }}
-              >
-                {emoji || "🥜"}
-              </motion.div>
+              {imageUrl ? (
+                <img src={imageUrl} alt={name} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+              ) : (
+                <>
+                  <div className="absolute inset-0 opacity-10"
+                    style={{
+                      backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
+                    }}
+                  />
+                  <div className="absolute left-0 right-0 top-0 h-3 bg-gradient-to-b from-black/10 to-transparent" />
+                  <motion.div
+                    className="relative z-10 text-6xl drop-shadow-lg"
+                    whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    {emoji || "🥜"}
+                  </motion.div>
+                </>
+              )}
               {/* Top flap animation on hover */}
               <motion.div
                 className="absolute left-0 right-0 top-0 h-8 origin-top bg-gradient-to-b from-black/20 to-transparent"
