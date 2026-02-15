@@ -1,77 +1,106 @@
 
 
-# Functional Cart + WhatsApp Checkout
+# Fix Blank Product Page, Polish Cart/WhatsApp Flow, Add Blog & SEO
 
-## Overview
+## 1. Critical Bug Fix: Blank Product Detail Page
 
-Build a fully working cart system that requires login, stores items in the `cart_items` Supabase table, and leads to a checkout page that redirects users to WhatsApp to place their order directly with the owner.
+**Root cause:** In `ProductDetail.tsx`, the hooks `useAuth()`, `useCart()`, and `useNavigate()` are called on lines 137-139 -- AFTER early returns for loading (line 105) and not-found (line 125). This violates React's Rules of Hooks, which requires all hooks to be called in the same order every render. This crashes the component silently, causing a blank page.
 
-## What Changes
+**Fix:** Move all hook calls (`useAuth`, `useCart`, `useNavigate`) to the top of the component, before any conditional returns.
 
-### 1. Cart Context (new file: `src/hooks/useCart.tsx`)
-A React context that manages cart state using the existing `cart_items` table in Supabase:
-- `addToCart(productId, quantity)` -- inserts/updates cart item (requires auth)
-- `removeFromCart(productId)` -- deletes item
-- `updateQuantity(productId, quantity)` -- updates quantity
-- `clearCart()` -- removes all items
-- `cartItems` -- array of cart items with product details
-- `cartCount` -- total item count (shown as badge on cart icon in header)
-- Auto-loads cart on login, clears on logout
+## 2. WhatsApp Checkout Flow Polish
 
-### 2. "Add to Cart" requires login
-- **ProductDetail.tsx**: The "Add to Cart" button checks if user is logged in. If not, redirect to `/login` with a toast message "Please sign in to add items to cart"
-- **ProductCard.tsx**: Same behavior for the cart icon button on hover
+The current Checkout page works but needs minor improvements:
+- After the user clicks "Order via WhatsApp", clear their cart automatically so they don't see stale items
+- Add a confirmation step before opening WhatsApp ("Your order details will be sent via WhatsApp")
+- Show a small note with the WhatsApp number so users know who they're contacting
 
-### 3. Cart Page (rewrite `src/pages/Cart.tsx`)
-Replace the static empty-cart page with a functional cart:
-- Shows list of cart items with product image/emoji, name, price, quantity controls (+/- buttons)
-- "Remove" button per item
-- Cart summary sidebar showing subtotal and total
-- "Proceed to Checkout" button (navigates to `/checkout`)
-- Empty state still shown when cart has no items
-- Login prompt if user is not signed in
+## 3. Blog System for SEO Ranking
 
-### 4. Checkout Page (new file: `src/pages/Checkout.tsx`)
-- Displays order summary (all items, quantities, prices, total)
-- Prominent "Order via WhatsApp" button that opens WhatsApp with a pre-formatted message:
-  - URL: `https://wa.me/917715808527?text=...`
-  - Message includes: order items list, quantities, prices, and total
-- The message is URL-encoded and formatted clearly
-- Add route `/checkout` in App.tsx
+To rank for keywords like "cashew", "almond", "dry fruits", "drum roast", we need content pages. Since there's no CMS, we'll create static blog pages with rich, keyword-optimized content.
 
-### 5. Header Cart Badge
-- Update Header.tsx to show a small badge with cart item count on the cart icon
-- Uses the cart context to get the count
+### New files:
+- `src/pages/Blog.tsx` -- Blog listing page with all articles
+- `src/pages/BlogPost.tsx` -- Individual blog post renderer
+- `src/data/blogPosts.ts` -- Blog content data (titles, slugs, content, meta descriptions)
 
-### 6. Wrap App with CartProvider
-- Add `CartProvider` inside `AuthProvider` in App.tsx so cart is available everywhere
+### Blog posts to include (5 articles):
+1. **"Health Benefits of Drum Roasted Cashews"** -- targets: cashew benefits, roasted cashews, healthy snacks
+2. **"Why DrumRoast Cashews Are India's Finest"** -- targets: drum roast, premium cashews India
+3. **"Almonds vs Cashews: A Complete Nutrition Guide"** -- targets: almond, cashew comparison
+4. **"Best Dry Fruits for Daily Snacking"** -- targets: dry fruits, daily snacks, healthy eating
+5. **"Corporate Gifting with Premium Dry Fruits"** -- targets: corporate gifts, dry fruit gift boxes
+
+Each blog post will include:
+- SEO-optimized title, meta description, and keywords
+- JSON-LD Article structured data
+- Internal links to product pages and shop
+- Proper heading hierarchy (H1, H2, H3)
+
+### Route: `/blog` and `/blog/:slug`
+
+## 4. Advanced SEO Enhancements
+
+### Per-page meta tags
+Create a reusable `SEOHead` component that dynamically sets:
+- `document.title`
+- Meta description via `useEffect`
+- JSON-LD structured data per page type
+
+### Product page SEO
+Add Product schema (JSON-LD) to `ProductDetail.tsx` with:
+- Product name, description, price, image, availability
+- Brand: DrumRoast
+- Currency: INR
+
+### Sitemap update
+Add `/blog` and individual blog post URLs to `public/sitemap.xml`
+
+### index.html improvements
+- Add more keyword variations to meta keywords
+- Ensure OG image URLs are absolute (`https://drumroast.vercel.app/og-image.jpg`)
 
 ## Technical Details
 
-### Files to Create
-- `src/hooks/useCart.tsx` -- Cart context with Supabase integration
-- `src/pages/Checkout.tsx` -- Checkout page with WhatsApp redirect
+### Files to create:
+- `src/components/SEOHead.tsx` -- Reusable SEO component
+- `src/data/blogPosts.ts` -- Blog content data
+- `src/pages/Blog.tsx` -- Blog listing
+- `src/pages/BlogPost.tsx` -- Blog post detail
 
-### Files to Modify
-- `src/pages/Cart.tsx` -- Full rewrite to show actual cart items
-- `src/pages/ProductDetail.tsx` -- Wire "Add to Cart" to cart context with auth check
-- `src/components/ProductCard.tsx` -- Wire cart button with auth check
-- `src/components/layout/Header.tsx` -- Add cart count badge
-- `src/App.tsx` -- Add CartProvider wrapper and `/checkout` route
+### Files to modify:
+- `src/pages/ProductDetail.tsx` -- Move hooks to top (fix crash), add Product JSON-LD
+- `src/pages/Checkout.tsx` -- Clear cart after WhatsApp click, add confirmation
+- `src/App.tsx` -- Add `/blog` and `/blog/:slug` routes
+- `public/sitemap.xml` -- Add blog URLs
+- `index.html` -- Fix OG image to absolute URL, add more keywords
 
-### WhatsApp Message Format
-When the user clicks "Order via WhatsApp", a message like this opens:
+### Hook ordering fix (the critical change):
+
+Before (broken):
 ```
-Hi! I'd like to place an order from DrumRoast:
-
-1. Masala Cashew (x2) - Rs.598
-2. Chocolate Cashew (x1) - Rs.349
-
-Total: Rs.947
-
-Please confirm availability and payment details.
+const ProductDetail = () => {
+  const { id } = useParams();
+  // ... state hooks ...
+  
+  if (loading) return <Layout>...</Layout>;    // EARLY RETURN
+  if (!product) return <Layout>...</Layout>;   // EARLY RETURN
+  
+  const { user } = useAuth();      // HOOKS AFTER RETURN = CRASH
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 ```
 
-### Cart-Database Integration
-The existing `cart_items` table has: `id`, `user_id`, `product_id`, `quantity`, `created_at` with proper RLS policies (users can only access their own items). The context will join with `products` table to get names, prices, and images for display.
+After (fixed):
+```
+const ProductDetail = () => {
+  const { id } = useParams();
+  const { user } = useAuth();        // ALL HOOKS AT TOP
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
+  // ... state hooks ...
+  
+  if (loading) return <Layout>...</Layout>;    // Safe now
+  if (!product) return <Layout>...</Layout>;   // Safe now
+```
 
