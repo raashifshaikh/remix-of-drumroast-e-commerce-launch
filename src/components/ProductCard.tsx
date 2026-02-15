@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 type ProductCardProps = {
   id: string;
@@ -23,6 +26,7 @@ const flavorAccents: Record<string, string> = {
 };
 
 const ProductCard = ({
+  id,
   name,
   slug,
   price,
@@ -34,6 +38,22 @@ const ProductCard = ({
   index = 0,
 }: ProductCardProps) => {
   const gradient = flavorAccents[category] || flavorAccents.Signature;
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast({ title: "Please sign in", description: "You need to be logged in to add items to cart." });
+      navigate("/login");
+      return;
+    }
+    await addToCart(id);
+    toast({ title: "Added to cart!", description: `${name} added to your cart.` });
+  };
 
   return (
     <motion.div
@@ -113,7 +133,7 @@ const ProductCard = ({
                 whileHover={{ scale: 1 }}
                 className="opacity-0 transition-opacity group-hover:opacity-100"
               >
-                <Button size="icon" variant="default" className="h-9 w-9 rounded-full shadow-md">
+                <Button size="icon" variant="default" className="h-9 w-9 rounded-full shadow-md" onClick={handleAddToCart}>
                   <ShoppingCart className="h-4 w-4" />
                 </Button>
               </motion.div>
