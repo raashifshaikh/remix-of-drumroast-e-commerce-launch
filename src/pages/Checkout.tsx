@@ -1,15 +1,19 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageCircle, ArrowLeft, ShoppingCart } from "lucide-react";
+import { MessageCircle, ArrowLeft, ShoppingCart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/layout/Layout";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 
+const WHATSAPP_NUMBER = "917715808527";
+
 const Checkout = () => {
   const { user } = useAuth();
-  const { cartItems, cartTotal } = useCart();
+  const { cartItems, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const [confirmed, setConfirmed] = useState(false);
 
   if (!user) {
     return (
@@ -43,7 +47,12 @@ const Checkout = () => {
     return encodeURIComponent(msg);
   };
 
-  const whatsappUrl = `https://wa.me/917715808527?text=${generateWhatsAppMessage()}`;
+  const handleOrderViaWhatsApp = () => {
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${generateWhatsAppMessage()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    clearCart();
+    setTimeout(() => navigate("/shop"), 500);
+  };
 
   return (
     <Layout>
@@ -81,14 +90,41 @@ const Checkout = () => {
             </div>
           </div>
 
-          <motion.div className="mt-8" whileTap={{ scale: 0.97 }}>
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="w-full rounded-full bg-[hsl(142,70%,45%)] text-white shadow-lg hover:bg-[hsl(142,70%,40%)]">
+          {!confirmed ? (
+            <motion.div className="mt-8" whileTap={{ scale: 0.97 }}>
+              <Button
+                size="lg"
+                className="w-full rounded-full bg-[hsl(142,70%,45%)] text-white shadow-lg hover:bg-[hsl(142,70%,40%)]"
+                onClick={() => setConfirmed(true)}
+              >
                 <MessageCircle className="mr-2 h-5 w-5" />
-                Order via WhatsApp
+                Proceed to Order via WhatsApp
               </Button>
-            </a>
-          </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8 space-y-4 rounded-2xl border border-[hsl(142,70%,45%)]/30 bg-[hsl(142,70%,45%)]/5 p-6 text-center"
+            >
+              <p className="font-semibold">Your order details will be sent via WhatsApp to the DrumRoast team.</p>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4" />
+                <span>+91 77158 08527</span>
+              </div>
+              <Button
+                size="lg"
+                className="w-full rounded-full bg-[hsl(142,70%,45%)] text-white shadow-lg hover:bg-[hsl(142,70%,40%)]"
+                onClick={handleOrderViaWhatsApp}
+              >
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Confirm & Open WhatsApp
+              </Button>
+              <button onClick={() => setConfirmed(false)} className="text-sm text-muted-foreground hover:text-foreground">
+                Cancel
+              </button>
+            </motion.div>
+          )}
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             You'll be redirected to WhatsApp to confirm your order with the owner directly.

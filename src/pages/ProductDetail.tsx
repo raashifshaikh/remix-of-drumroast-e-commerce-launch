@@ -70,6 +70,9 @@ const DetailAccordion = ({ icon: Icon, label, value }: { icon: React.ElementType
 const ProductDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,9 +137,6 @@ const ProductDetail = () => {
     );
   }
 
-  const { user } = useAuth();
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
 
   const handleAddToCart = async () => {
     if (!user) {
