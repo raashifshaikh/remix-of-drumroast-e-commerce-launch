@@ -1,106 +1,63 @@
 
 
-# Fix Blank Product Page, Polish Cart/WhatsApp Flow, Add Blog & SEO
+# Display Offers Publicly, Add Offer Images, Boost SEO
 
-## 1. Critical Bug Fix: Blank Product Detail Page
+## Problems Found
 
-**Root cause:** In `ProductDetail.tsx`, the hooks `useAuth()`, `useCart()`, and `useNavigate()` are called on lines 137-139 -- AFTER early returns for loading (line 105) and not-found (line 125). This violates React's Rules of Hooks, which requires all hooks to be called in the same order every render. This crashes the component silently, causing a blank page.
+1. **Offers are invisible to customers** -- They only exist in the admin panel. The homepage and shop page never show active offers/deals to visitors.
+2. **No offer image support** -- The `offers` table has no `image_url` column, so admins can't attach promotional banners.
+3. **Blog link missing from navigation** -- The blog exists but there's no way for users to find it from the header menu.
+4. **SEO gaps** -- No Offer structured data (JSON-LD), and the blog is unreachable from navigation which hurts discoverability.
 
-**Fix:** Move all hook calls (`useAuth`, `useCart`, `useNavigate`) to the top of the component, before any conditional returns.
+---
 
-## 2. WhatsApp Checkout Flow Polish
+## What Will Change
 
-The current Checkout page works but needs minor improvements:
-- After the user clicks "Order via WhatsApp", clear their cart automatically so they don't see stale items
-- Add a confirmation step before opening WhatsApp ("Your order details will be sent via WhatsApp")
-- Show a small note with the WhatsApp number so users know who they're contacting
+### 1. Add `image_url` column to `offers` table
+A database migration to add an `image_url` text column to the `offers` table so each offer can have a promotional banner image. Images will be stored in the existing `product-images` storage bucket.
 
-## 3. Blog System for SEO Ranking
+### 2. Update Admin Offers page with image upload
+Modify `src/pages/admin/Offers.tsx` to include:
+- An image upload field (same pattern as admin Products page)
+- Image preview in the offers table
+- Upload to `product-images` bucket in Supabase Storage
 
-To rank for keywords like "cashew", "almond", "dry fruits", "drum roast", we need content pages. Since there's no CMS, we'll create static blog pages with rich, keyword-optimized content.
+### 3. Add Offers Banner Section to Homepage
+Add a new section to `src/pages/Index.tsx` between the hero and stats sections that:
+- Fetches active offers from the database
+- Displays them as eye-catching banner cards with the offer image, title, discount percentage, and a "Shop Now" link
+- Falls back gracefully when no active offers exist (section simply doesn't render)
+- Includes Offer JSON-LD structured data for Google rich results
 
-### New files:
-- `src/pages/Blog.tsx` -- Blog listing page with all articles
-- `src/pages/BlogPost.tsx` -- Individual blog post renderer
-- `src/data/blogPosts.ts` -- Blog content data (titles, slugs, content, meta descriptions)
+### 4. Add Offers Banner to Shop Page
+Add a horizontal scrollable offers strip at the top of the Shop page (`src/pages/Shop.tsx`) showing active deals with discount badges and offer images.
 
-### Blog posts to include (5 articles):
-1. **"Health Benefits of Drum Roasted Cashews"** -- targets: cashew benefits, roasted cashews, healthy snacks
-2. **"Why DrumRoast Cashews Are India's Finest"** -- targets: drum roast, premium cashews India
-3. **"Almonds vs Cashews: A Complete Nutrition Guide"** -- targets: almond, cashew comparison
-4. **"Best Dry Fruits for Daily Snacking"** -- targets: dry fruits, daily snacks, healthy eating
-5. **"Corporate Gifting with Premium Dry Fruits"** -- targets: corporate gifts, dry fruit gift boxes
+### 5. Add Blog link to navigation
+Update `src/components/layout/Header.tsx` to add "Blog" to the nav links array so visitors can discover the SEO content.
 
-Each blog post will include:
-- SEO-optimized title, meta description, and keywords
-- JSON-LD Article structured data
-- Internal links to product pages and shop
-- Proper heading hierarchy (H1, H2, H3)
+### 6. Add Offer JSON-LD structured data
+Each visible offer will include Schema.org `Offer` markup so Google can show special offer rich results in search.
 
-### Route: `/blog` and `/blog/:slug`
-
-## 4. Advanced SEO Enhancements
-
-### Per-page meta tags
-Create a reusable `SEOHead` component that dynamically sets:
-- `document.title`
-- Meta description via `useEffect`
-- JSON-LD structured data per page type
-
-### Product page SEO
-Add Product schema (JSON-LD) to `ProductDetail.tsx` with:
-- Product name, description, price, image, availability
-- Brand: DrumRoast
-- Currency: INR
-
-### Sitemap update
-Add `/blog` and individual blog post URLs to `public/sitemap.xml`
-
-### index.html improvements
-- Add more keyword variations to meta keywords
-- Ensure OG image URLs are absolute (`https://drumroast.vercel.app/og-image.jpg`)
+---
 
 ## Technical Details
 
-### Files to create:
-- `src/components/SEOHead.tsx` -- Reusable SEO component
-- `src/data/blogPosts.ts` -- Blog content data
-- `src/pages/Blog.tsx` -- Blog listing
-- `src/pages/BlogPost.tsx` -- Blog post detail
-
-### Files to modify:
-- `src/pages/ProductDetail.tsx` -- Move hooks to top (fix crash), add Product JSON-LD
-- `src/pages/Checkout.tsx` -- Clear cart after WhatsApp click, add confirmation
-- `src/App.tsx` -- Add `/blog` and `/blog/:slug` routes
-- `public/sitemap.xml` -- Add blog URLs
-- `index.html` -- Fix OG image to absolute URL, add more keywords
-
-### Hook ordering fix (the critical change):
-
-Before (broken):
-```
-const ProductDetail = () => {
-  const { id } = useParams();
-  // ... state hooks ...
-  
-  if (loading) return <Layout>...</Layout>;    // EARLY RETURN
-  if (!product) return <Layout>...</Layout>;   // EARLY RETURN
-  
-  const { user } = useAuth();      // HOOKS AFTER RETURN = CRASH
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
+### Database Migration
+```sql
+ALTER TABLE offers ADD COLUMN image_url text;
 ```
 
-After (fixed):
-```
-const ProductDetail = () => {
-  const { id } = useParams();
-  const { user } = useAuth();        // ALL HOOKS AT TOP
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
-  // ... state hooks ...
-  
-  if (loading) return <Layout>...</Layout>;    // Safe now
-  if (!product) return <Layout>...</Layout>;   // Safe now
-```
+### Files to Modify
+- `src/pages/admin/Offers.tsx` -- Add image upload field and preview column
+- `src/pages/Index.tsx` -- Add offers banner section with structured data
+- `src/pages/Shop.tsx` -- Add offers strip above product grid
+- `src/components/layout/Header.tsx` -- Add "Blog" to navLinks array
+
+### Offers Display Logic
+- Query: `supabase.from("offers").select("*").eq("is_active", true)` with date filtering (`start_date <= now`, `end_date >= now`)
+- Each offer card shows: image (or gradient fallback), title, description, discount percentage, and link to the associated product (if `product_id` is set) or to `/shop`
+- Offer JSON-LD schema includes `@type: Offer`, name, description, discount, validity dates, and seller info
+
+### Navigation Update
+Add `{ to: "/blog", label: "Blog" }` to the navLinks array in Header.tsx, positioned after "Contact".
 
