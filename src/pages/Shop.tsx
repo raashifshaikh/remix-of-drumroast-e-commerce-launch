@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/layout/Layout";
@@ -22,9 +23,13 @@ type Product = {
 
 type Offer = {
   id: string;
+  title: string;
+  description: string | null;
   discount_percentage: number;
   product_id: string | null;
   is_active: boolean | null;
+  image_url: string | null;
+  end_date: string;
 };
 
 const categories = ["All", "Signature", "Daily", "Gift"];
@@ -41,7 +46,7 @@ const Shop = () => {
       setLoading(true);
       const [{ data: prods }, { data: offs }] = await Promise.all([
         supabase.from("products").select("id,name,slug,price,original_price,category,emoji,image_url,is_active").eq("is_active", true),
-        supabase.from("offers").select("id,discount_percentage,product_id,is_active").eq("is_active", true),
+        supabase.from("offers").select("id,title,description,discount_percentage,product_id,is_active,image_url,end_date").eq("is_active", true),
       ]);
       if (prods) setProducts(prods as Product[]);
       if (offs) setOffers(offs as Offer[]);
@@ -79,6 +84,41 @@ const Shop = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Active Offers Strip */}
+      {offers.length > 0 && (
+        <section className="container pt-8 pb-2">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {offers.map((o) => (
+              <Link
+                key={o.id}
+                to={o.product_id ? `/product/${o.product_id}` : "/shop"}
+                className="flex-shrink-0"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  className="relative flex h-24 w-72 items-center gap-3 overflow-hidden rounded-xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md"
+                >
+                  {o.image_url ? (
+                    <img src={o.image_url} alt={o.title} className="h-full w-20 flex-shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-full w-20 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Tag className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{o.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{o.description}</p>
+                    <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      {o.discount_percentage}% OFF
+                    </span>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="container py-10">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

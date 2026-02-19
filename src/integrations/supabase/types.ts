@@ -53,6 +53,7 @@ export type Database = {
           discount_percentage: number
           end_date: string
           id: string
+          image_url: string | null
           is_active: boolean | null
           product_id: string | null
           start_date: string
@@ -64,6 +65,7 @@ export type Database = {
           discount_percentage?: number
           end_date: string
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           product_id?: string | null
           start_date?: string
@@ -75,6 +77,7 @@ export type Database = {
           discount_percentage?: number
           end_date?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           product_id?: string | null
           start_date?: string
