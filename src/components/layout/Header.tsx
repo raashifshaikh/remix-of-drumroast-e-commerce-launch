@@ -14,6 +14,7 @@ const navLinks = [
   { to: "/cafe", label: "Café" },
   { to: "/corporate", label: "Corporate" },
   { to: "/contact", label: "Contact" },
+  { to: "/blog", label: "Blog" },
 ];
 
 const Header = () => {

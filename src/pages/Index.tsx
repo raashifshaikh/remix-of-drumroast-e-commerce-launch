@@ -64,6 +64,17 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
 
 type FeaturedProduct = { id: string; name: string; slug: string; price: number; category: string; emoji: string | null; image_url: string | null };
 
+type ActiveOffer = {
+  id: string;
+  title: string;
+  description: string | null;
+  discount_percentage: number;
+  product_id: string | null;
+  image_url: string | null;
+  start_date: string;
+  end_date: string;
+};
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -78,15 +89,27 @@ const jsonLd = {
 
 const Index = () => {
   const [featured, setFeatured] = useState<FeaturedProduct[]>([]);
+  const [activeOffers, setActiveOffers] = useState<ActiveOffer[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("products") 
-      .select("id,name,slug,price,category,emoji,image_url")
-      .eq("is_featured", true)
-      .eq("is_active", true)
-      .limit(6)
-      .then(({ data }) => { if (data) setFeatured(data as FeaturedProduct[]); });
+    const now = new Date().toISOString();
+    Promise.all([
+      supabase
+        .from("products")
+        .select("id,name,slug,price,category,emoji,image_url")
+        .eq("is_featured", true)
+        .eq("is_active", true)
+        .limit(6),
+      supabase
+        .from("offers")
+        .select("id,title,description,discount_percentage,product_id,image_url,start_date,end_date")
+        .eq("is_active", true)
+        .lte("start_date", now)
+        .gte("end_date", now),
+    ]).then(([{ data: prods }, { data: offs }]) => {
+      if (prods) setFeatured(prods as FeaturedProduct[]);
+      if (offs) setActiveOffers(offs as ActiveOffer[]);
+    });
   }, []);
 
   return (
@@ -141,6 +164,72 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Active Offers Banner */}
+      {activeOffers.length > 0 && (
+        <section className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 py-10 md:py-14">
+          <div className="container">
+            <h2 className="mb-6 text-center font-heading text-2xl font-bold md:text-3xl">
+              🔥 Hot <span className="text-primary">Deals</span>
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeOffers.map((offer, i) => (
+                <motion.div
+                  key={offer.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <Link to={offer.product_id ? `/product/${offer.product_id}` : "/shop"}>
+                    <Card className="group overflow-hidden border-none shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                      {offer.image_url ? (
+                        <div className="relative h-40 overflow-hidden">
+                          <img src={offer.image_url} alt={offer.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                            {offer.discount_percentage}% OFF
+                          </span>
+                          <div className="absolute bottom-3 left-3 right-3">
+                            <h3 className="font-heading text-lg font-bold text-white">{offer.title}</h3>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                          <span className="text-5xl">🏷️</span>
+                          <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                            {offer.discount_percentage}% OFF
+                          </span>
+                          <div className="absolute bottom-3 left-3 right-3">
+                            <h3 className="font-heading text-lg font-bold">{offer.title}</h3>
+                          </div>
+                        </div>
+                      )}
+                      <CardContent className="p-4">
+                        <p className="text-sm text-muted-foreground line-clamp-2">{offer.description || "Limited time offer!"}</p>
+                        <p className="mt-2 text-xs font-semibold text-primary">Shop Now →</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          {/* Offer JSON-LD */}
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(
+            activeOffers.map(o => ({
+              "@context": "https://schema.org",
+              "@type": "Offer",
+              name: o.title,
+              description: o.description || o.title,
+              discount: o.discount_percentage,
+              validFrom: o.start_date,
+              validThrough: o.end_date,
+              seller: { "@type": "Organization", name: "DrumRoast" },
+            }))
+          )}} />
+        </section>
+      )}
 
       {/* Stats */}
       <section className="border-b bg-card">
